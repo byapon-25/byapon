@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.report-box{
+    max-width:1000px;
+    margin:auto;
+    background:#fff;
+    border-radius:20px;
+    padding:30px;
+    box-shadow:0 10px 35px rgba(15,23,42,.08);
+}
+.coaching-name{
+    font-size:28px;
+    font-weight:900;
+}
+@media print{
+    body{background:#fff!important;}
+    .no-print{display:none!important;}
+    .report-box{
+        box-shadow:none!important;
+        border-radius:0!important;
+        max-width:none!important;
+    }
+}
+</style>
+
+<div class="report-box">
+
+    <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4">
+        <div>
+            <div class="coaching-name">BYAPON Coaching</div>
+            <div class="text-muted">Student Fee Statement</div>
+        </div>
+
+        <div class="no-print d-flex gap-2">
+            <button onclick="window.print()" class="btn btn-dark">
+                🖨️ Print
+            </button>
+            <button onclick="window.print()" class="btn btn-outline-dark">
+                📥 Save PDF
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h4 class="fw-bold mb-1">{{ student.name }}</h4>
+            <div>Student ID: <strong>{{ student.student_id }}</strong></div>
+        </div>
+        <div class="col-md-6">
+            <div>Class: <strong>{{ student.class_name or '-' }}</strong></div>
+            <div>Batch: <strong>{{ student.batch or '-' }}</strong></div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="border rounded p-3 text-center">
+                <small class="text-muted">Total Fee</small>
+                <div class="fs-4 fw-bold">
+                    ৳{{ "%.2f"|format(total_fee) }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="border rounded p-3 text-center">
+                <small class="text-muted">Total Paid</small>
+                <div class="fs-4 fw-bold text-success">
+                    ৳{{ "%.2f"|format(total_paid) }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="border rounded p-3 text-center">
+                <small class="text-muted">Total Due</small>
+                <div class="fs-4 fw-bold text-danger">
+                    ৳{{ "%.2f"|format(total_due) }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Month</th>
+                    <th>Total Fee</th>
+                    <th>Paid</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                    <th>Payment Date</th>
+                </tr>
+            </thead>
+
+            <tbody>
+            {% for f in fees %}
+                <tr>
+                    <td>{{ f.fee_month }}</td>
+                    <td>৳{{ "%.2f"|format(f.amount) }}</td>
+                    <td class="text-success">
+                        ৳{{ "%.2f"|format(f.paid_amount) }}
+                    </td>
+                    <td class="text-danger">
+                        ৳{{ "%.2f"|format(f.amount - f.paid_amount) }}
+                    </td>
+                    <td>
+                        {% if f.status == "Paid" %}
+                            <span class="badge bg-success">Paid</span>
+                        {% elif f.status == "Partial" %}
+                            <span class="badge bg-warning text-dark">Partial</span>
+                        {% else %}
+                            <span class="badge bg-danger">Unpaid</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ f.payment_date or "-" }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        No fee records yet.
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}

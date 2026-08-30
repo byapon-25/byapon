@@ -1,0 +1,1566 @@
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+import sqlite3
+import time
+import secrets
+from pathlib import Path
+from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import date
+
+BASE_DIR = Path(__file__).resolve().parent
+DB = BASE_DIR / "coaching.db"
+
+app = Flask(__name__)
+SECRET_FILE = BASE_DIR / ".secret_key"
+
+if not SECRET_FILE.exists():
+    SECRET_FILE.write_text(secrets.token_hex(32))
+    SECRET_FILE.chmod(0o600)
+
+app.secret_key = SECRET_FILE.read_text().strip()
+
+# Session security
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = False
+
+
+def db():
+    con = sqlite3.connect(DB)
+    con.row_factory = sqlite3.Row
+    con.execute("PRAGMA foreign_keys=ON")
+    return con
+
+def init_db():
+    con = db()
+    con.executescript("""
+    CREATE TABLE IF NOT EXISTS users(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS password_reset_tokens(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at INTEGER NOT NULL,
+      used INTEGER DEFAULT 0,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS students(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      phone TEXT, guardian TEXT, guardian_phone TEXT,
+      class_name TEXT, batch TEXT, address TEXT,
+      admission_date TEXT, monthly_fee REAL DEFAULT 0,
+      active INTEGER DEFAULT 1
+    );
+    CREATE TABLE IF NOT EXISTS attendance(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL,
+      attendance_date TEXT NOT NULL,
+      status TEXT NOT NULL,
+      UNIQUE(student_id,attendance_date),
+      FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS exams(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL, exam_date TEXT NOT NULL,
+      subject TEXT NOT NULL, full_marks REAL DEFAULT 100,
+      pass_marks REAL DEFAULT 33
+    );
+    CREATE TABLE IF NOT EXISTS marks(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      exam_id INTEGER NOT NULL, student_id INTEGER NOT NULL,
+      marks REAL DEFAULT 0,
+      UNIQUE(exam_id,student_id),
+      FOREIGN KEY(exam_id) REFERENCES exams(id) ON DELETE CASCADE,
+      FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS transactions(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tx_date TEXT NOT NULL, tx_type TEXT NOT NULL,
+      category TEXT NOT NULL, amount REAL NOT NULL, note TEXT
+    );
+    CREATE TABLE IF NOT EXISTS coaching_days(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      day_date TEXT UNIQUE NOT NULL, status TEXT NOT NULL, note TEXT
+    );
+    CREATE TABLE IF NOT EXISTS teachers(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL, phone TEXT, subject TEXT,
+      salary REAL DEFAULT 0, active INTEGER DEFAULT 1
+    );
+    CREATE TABLE IF NOT EXISTS routines(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      day_name TEXT NOT NULL, batch TEXT, subject TEXT,
+      teacher TEXT, start_time TEXT, end_time TEXT
+    );
+    """)
+    if not con.execute("SELECT 1 FROM users WHERE username='admin'").fetchone():
+        con.execute("INSERT INTO users(username,password_hash) VALUES(?,?)",
+                    ("admin", generate_password_hash("admin123")))
+    con.commit()
+    con.close()
+
+# Simple in-memory login protection
+LOGIN_ATTEMPTS = {}
+MAX_LOGIN_ATTEMPTS = 5
+LOCKOUT_SECONDS = 600
+
+def login_allowed(username):
+    now = time.time()
+    data = LOGIN_ATTEMPTS.get(username)
+
+    if not data:
+        return True
+
+    attempts, first_time, locked_until = data
+
+    if locked_until and now < locked_until:
+        return False
+
+    if locked_until and now >= locked_until:
+        LOGIN_ATTEMPTS.pop(username, None)
+        return True
+
+    return True
+
+def record_failed_login(username):
+    now = time.time()
+    data = LOGIN_ATTEMPTS.get(username)
+
+    if not data:
+        LOGIN_ATTEMPTS[username] = (1, now, 0)
+        return
+
+    attempts, first_time, locked_until = data
+    attempts += 1
+
+    if attempts >= MAX_LOGIN_ATTEMPTS:
+        LOGIN_ATTEMPTS[username] = (
+            attempts,
+            first_time,
+            now + LOCKOUT_SECONDS
+        )
+    else:
+        LOGIN_ATTEMPTS[username] = (
+            attempts,
+            first_time,
+            0
+        )
+
+def clear_login_attempts(username):
+    LOGIN_ATTEMPTS.pop(username, None)
+
+def csrf_token():
+    if "csrf_token" not in session:
+        session["csrf_token"] = secrets.token_urlsafe(32)
+    return session["csrf_token"]
+
+@app.context_processor
+def inject_csrf_token():
+    return {"csrf_token": csrf_token}
+
+def validate_csrf():
+    token = request.form.get("csrf_token", "")
+    session_token = session.get("csrf_token", "")
+
+    if not token or not session_token or not secrets.compare_digest(
+        token, session_token
+    ):
+        flash("Invalid security token. Please try again.", "danger")
+        return False
+
+    return True
+
+@app.before_request
+def csrf_protect():
+    if request.method == "POST":
+        if not validate_csrf():
+            return "Invalid CSRF token.", 400
+
+def login_required(f):
+    @wraps(f)
+    def w(*a,**k):
+        if "user_id" not in session:
+            return redirect(url_for("login"))
+        return f(*a,**k)
+    return w
+
+@app.route("/admin-login", methods=["GET","POST"])
+def admin_login():
+    return portal_login("admin")
+
+
+@app.route("/teacher-login", methods=["GET","POST"])
+def teacher_login():
+    return portal_login("teacher")
+
+
+@app.route("/student-login", methods=["GET","POST"])
+def student_login():
+    return portal_login("student")
+
+
+def portal_login(panel):
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+
+        if not username:
+            flash("Username is required.", "danger")
+            return render_template("login.html", panel=panel.title())
+
+        if not login_allowed(username):
+            flash("Too many failed attempts. Please try again after 10 minutes.", "danger")
+            return render_template("login.html", panel=panel.title())
+
+        con = db()
+
+        u = con.execute(
+            "SELECT * FROM users WHERE username=?",
+            (username,)
+        ).fetchone()
+
+        con.close()
+
+        if u and u["role"] == panel and check_password_hash(
+            u["password_hash"],
+            request.form.get("password", "")
+        ):
+            clear_login_attempts(username)
+            session.clear()
+            session["user_id"] = u["id"]
+            session["username"] = u["username"]
+            session["role"] = u["role"]
+
+            if panel == "student":
+                session["student_id"] = u["student_id"]
+                return redirect(url_for("student_dashboard"))
+
+            if panel == "teacher":
+                session["teacher_id"] = u["teacher_id"]
+                return redirect(url_for("teacher_dashboard"))
+
+            return redirect(url_for("dashboard"))
+
+        record_failed_login(username)
+        flash(f"Invalid {panel} login information.", "danger")
+
+    return render_template(
+        "login.html",
+        panel=panel.title()
+    )
+
+
+@app.route("/login", methods=["GET","POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+
+        if not username:
+            flash("Username is required.", "danger")
+            return render_template("login.html")
+
+        if not login_allowed(username):
+            flash("Too many failed attempts. Please try again after 10 minutes.", "danger")
+            return render_template("login.html")
+
+        con = db()
+
+        u = con.execute(
+            "SELECT * FROM users WHERE username=?",
+            (username,)
+        ).fetchone()
+
+        con.close()
+
+        if u and check_password_hash(
+            u["password_hash"],
+            request.form.get("password", "")
+        ):
+            clear_login_attempts(username)
+            session.clear()
+            session["user_id"] = u["id"]
+            session["username"] = u["username"]
+            session["role"] = u["role"]
+
+            if u["role"] == "student":
+                session["student_id"] = u["student_id"]
+                return redirect(url_for("student_dashboard"))
+
+            if u["role"] == "teacher":
+                session["teacher_id"] = u["teacher_id"]
+                return redirect(url_for("teacher_dashboard"))
+
+            return redirect(url_for("dashboard"))
+
+        record_failed_login(username)
+        flash("Login information is incorrect.", "danger")
+
+    return render_template("login.html")
+
+@app.get("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+@app.get("/home")
+def home():
+    return render_template("home.html")
+
+@app.get("/student-dashboard")
+@login_required
+def student_dashboard():
+    if session.get("role") != "student":
+        return redirect(url_for("dashboard"))
+
+    con = db()
+
+    student = con.execute(
+        "SELECT * FROM students WHERE id=?",
+        (session.get("student_id"),)
+    ).fetchone()
+
+    if not student:
+        con.close()
+        session.clear()
+        return redirect(url_for("login"))
+
+    attendance = con.execute(
+        """SELECT attendance_date,status
+           FROM attendance
+           WHERE student_id=?
+           ORDER BY attendance_date DESC""",
+        (student["id"],)
+    ).fetchall()
+
+    attendance_total = len(attendance)
+    attendance_present = sum(
+        1 for a in attendance if a["status"] == "Present"
+    )
+    attendance_percentage = (
+        round((attendance_present / attendance_total) * 100, 1)
+        if attendance_total else 0
+    )
+
+    routines = con.execute(
+        """SELECT day_name,batch,subject,teacher,start_time,end_time
+           FROM routines
+           WHERE batch=? OR batch IS NULL OR batch=''
+           ORDER BY
+             CASE day_name
+               WHEN 'Saturday' THEN 1
+               WHEN 'Sunday' THEN 2
+               WHEN 'Monday' THEN 3
+               WHEN 'Tuesday' THEN 4
+               WHEN 'Wednesday' THEN 5
+               WHEN 'Thursday' THEN 6
+               WHEN 'Friday' THEN 7
+               ELSE 8
+             END,
+             start_time""",
+        (student["batch"],)
+    ).fetchall()
+
+    results = con.execute(
+        """SELECT e.title,e.exam_date,e.subject,e.full_marks,e.pass_marks,
+                  COALESCE(m.marks,0) marks
+           FROM exams e
+           LEFT JOIN marks m
+             ON m.exam_id=e.id AND m.student_id=?
+           ORDER BY e.exam_date DESC""",
+        (student["id"],)
+    ).fetchall()
+
+    fees = con.execute(
+        """SELECT fee_month,amount,paid_amount,payment_date,status,note
+           FROM fees
+           WHERE student_id=?
+           ORDER BY fee_month DESC""",
+        (student["id"],)
+    ).fetchall()
+
+    total_fee = sum(float(f["amount"] or 0) for f in fees)
+    total_paid = sum(float(f["paid_amount"] or 0) for f in fees)
+    total_due = total_fee - total_paid
+
+    con.close()
+
+    return render_template(
+        "student_dashboard.html",
+        student=student,
+        attendance=attendance,
+        attendance_total=attendance_total,
+        attendance_present=attendance_present,
+        attendance_percentage=attendance_percentage,
+        routines=routines,
+        results=results,
+        fees=fees,
+        total_fee=total_fee,
+        total_paid=total_paid,
+        total_due=total_due
+    )
+
+
+
+
+@app.get("/teacher-dashboard")
+@login_required
+def teacher_dashboard():
+    if session.get("role") != "teacher":
+        return redirect(url_for("dashboard"))
+
+    con = db()
+
+    teacher = con.execute(
+        "SELECT * FROM teachers WHERE id=?",
+        (session.get("teacher_id"),)
+    ).fetchone()
+
+    if not teacher:
+        con.close()
+        session.clear()
+        return redirect(url_for("login"))
+
+    routines = con.execute(
+        """SELECT day_name,batch,subject,teacher,start_time,end_time
+           FROM routines
+           WHERE teacher=?
+           ORDER BY day_name,start_time""",
+        (teacher["name"],)
+    ).fetchall()
+
+    con.close()
+
+    return render_template(
+        "teacher_dashboard.html",
+        teacher=teacher,
+        routines=routines
+    )
+
+@app.get("/")
+@login_required
+def dashboard():
+    if session.get("role") != "admin":
+        return redirect(url_for("student_dashboard") if session.get("role") == "student" else url_for("teacher_dashboard"))
+    con=db()
+    students=con.execute("SELECT COUNT(*) c FROM students WHERE active=1").fetchone()["c"]
+    present=con.execute("SELECT COUNT(*) c FROM attendance WHERE attendance_date=? AND status='Present'",
+                        (date.today().isoformat(),)).fetchone()["c"]
+    income=con.execute("SELECT COALESCE(SUM(amount),0) s FROM transactions WHERE tx_type='Income'").fetchone()["s"]
+    expense=con.execute("SELECT COALESCE(SUM(amount),0) s FROM transactions WHERE tx_type='Expense'").fetchone()["s"]
+    exams=con.execute("SELECT * FROM exams ORDER BY exam_date LIMIT 6").fetchall()
+    teachers=con.execute("SELECT COUNT(*) c FROM teachers WHERE active=1").fetchone()["c"]
+    con.close()
+    return render_template("dashboard.html",students=students,present=present,income=income,
+                           expense=expense,exams=exams,teachers=teachers)
+
+@app.route("/students",methods=["GET","POST"])
+@login_required
+def students():
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+
+    con=db()
+    if request.method=="POST":
+        if not validate_csrf():
+            con.close()
+            return redirect(url_for("students"))
+        try:
+            con.execute("""INSERT INTO students
+            (student_id,name,phone,guardian,guardian_phone,class_name,batch,address,admission_date,monthly_fee)
+            VALUES(?,?,?,?,?,?,?,?,?,?)""",
+            (request.form["student_id"],request.form["name"],request.form.get("phone"),
+             request.form.get("guardian"),request.form.get("guardian_phone"),
+             request.form.get("class_name"),request.form.get("batch"),request.form.get("address"),
+             request.form.get("admission_date"),float(request.form.get("monthly_fee") or 0)))
+            student_id = request.form["student_id"]
+            login_password = request.form.get("login_password")
+
+            if not login_password or len(login_password) < 6:
+                con.rollback()
+                flash("Student password must be at least 6 characters.","danger")
+                return redirect(url_for("students"))
+
+            student = con.execute(
+                "SELECT id FROM students WHERE student_id=?",
+                (student_id,)
+            ).fetchone()
+
+            con.execute(
+                """INSERT INTO users(username,password_hash,role,student_id)
+                   VALUES(?,?,?,?)""",
+                (
+                    student_id,
+                    generate_password_hash(login_password),
+                    "student",
+                    student["id"]
+                )
+            )
+
+            con.commit()
+            flash("Student added and login account created.","success")
+
+        except sqlite3.IntegrityError:
+            con.rollback()
+            flash("This Student ID or login account already exists.","danger")
+        return redirect(url_for("students"))
+    rows=con.execute("SELECT * FROM students ORDER BY id DESC").fetchall()
+    con.close()
+    return render_template("students.html",students=rows)
+@app.route("/students/<int:sid>/edit", methods=["GET", "POST"])
+@login_required
+def edit_student(sid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con = db()
+
+    student = con.execute(
+        "SELECT * FROM students WHERE id=?",
+        (sid,)
+    ).fetchone()
+
+    if not student:
+        con.close()
+        flash("Student not found.", "danger")
+        return redirect(url_for("students"))
+
+    if request.method == "POST":
+        try:
+            con.execute(
+                """UPDATE students SET
+                   student_id=?, name=?, phone=?, guardian=?,
+                   guardian_phone=?, class_name=?, batch=?,
+                   address=?, admission_date=?, monthly_fee=?
+                   WHERE id=?""",
+                (
+                    request.form["student_id"],
+                    request.form["name"],
+                    request.form.get("phone"),
+                    request.form.get("guardian"),
+                    request.form.get("guardian_phone"),
+                    request.form.get("class_name"),
+                    request.form.get("batch"),
+                    request.form.get("address"),
+                    request.form.get("admission_date"),
+                    float(request.form.get("monthly_fee") or 0),
+                    sid
+                )
+            )
+
+            con.execute(
+                """UPDATE users SET username=?
+                   WHERE student_id=? AND role='student'""",
+                (request.form["student_id"], sid)
+            )
+
+            new_password = request.form.get("login_password", "").strip()
+
+            if new_password:
+                if len(new_password) < 6:
+                    con.rollback()
+                    flash("Password must be at least 6 characters.", "danger")
+                    con.close()
+                    return redirect(url_for("edit_student", sid=sid))
+
+                con.execute(
+                    """UPDATE users SET password_hash=?
+                       WHERE student_id=? AND role='student'""",
+                    (generate_password_hash(new_password), sid)
+                )
+
+            con.commit()
+            flash("Student updated successfully.", "success")
+
+        except sqlite3.IntegrityError:
+            con.rollback()
+            flash("Student ID already exists.", "danger")
+
+        except (ValueError, TypeError):
+            con.rollback()
+            flash("Invalid student information.", "danger")
+
+        con.close()
+        return redirect(url_for("students"))
+
+    con.close()
+    return render_template("edit_student.html", student=student)
+@app.post("/students/<int:sid>/toggle")
+@login_required
+def toggle_student(sid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con=db(); con.execute("UPDATE students SET active=1-active WHERE id=?",(sid,))
+    con.commit(); con.close(); return redirect(url_for("students"))
+
+@app.post("/students/<int:sid>/delete")
+@login_required
+def delete_student(sid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con=db(); con.execute("DELETE FROM students WHERE id=?",(sid,))
+    con.commit(); con.close(); flash("Student deleted.","success")
+    return redirect(url_for("students"))
+
+@app.route("/attendance",methods=["GET","POST"])
+@login_required
+def attendance():
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    d=request.values.get("date") or date.today().isoformat()
+    con=db()
+    if request.method=="POST":
+        if not validate_csrf():
+            con.close()
+            return redirect(url_for("attendance"))
+        for k,v in request.form.items():
+            if k.startswith("status_"):
+                sid=int(k.split("_")[1])
+                con.execute("""INSERT INTO attendance(student_id,attendance_date,status)
+                VALUES(?,?,?) ON CONFLICT(student_id,attendance_date)
+                DO UPDATE SET status=excluded.status""",(sid,d,v))
+        con.commit(); flash("Attendance saved.","success")
+    rows=con.execute("""SELECT s.*,a.id AS attendance_id,
+      COALESCE(a.status,'Absent') status
+      FROM students s LEFT JOIN attendance a
+      ON a.student_id=s.id AND a.attendance_date=?
+      WHERE s.active=1 ORDER BY s.class_name,s.batch,s.name""",(d,)).fetchall()
+    con.close()
+    return render_template("attendance.html",students=rows,selected_date=d)
+
+
+@app.route("/attendance/<int:aid>/edit", methods=["GET", "POST"])
+@login_required
+def edit_attendance(aid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con = db()
+
+    record = con.execute(
+        """SELECT a.*, s.name, s.student_id AS student_code
+           FROM attendance a
+           JOIN students s ON s.id=a.student_id
+           WHERE a.id=?""",
+        (aid,)
+    ).fetchone()
+
+    if not record:
+        con.close()
+        flash("Attendance record not found.", "danger")
+        return redirect(url_for("attendance"))
+
+    if request.method == "POST":
+        try:
+            con.execute(
+                """UPDATE attendance
+                   SET student_id=?, attendance_date=?, status=?
+                   WHERE id=?""",
+                (
+                    int(request.form["student_id"]),
+                    request.form["attendance_date"],
+                    request.form["status"],
+                    aid
+                )
+            )
+
+            con.commit()
+            flash("Attendance updated successfully.", "success")
+
+        except sqlite3.IntegrityError:
+            con.rollback()
+            flash("Attendance record already exists for this student and date.", "danger")
+
+        except (ValueError, TypeError):
+            con.rollback()
+            flash("Invalid attendance information.", "danger")
+
+        con.close()
+        return redirect(url_for("attendance"))
+
+    students = con.execute(
+        """SELECT id,student_id,name
+           FROM students
+           WHERE active=1
+           ORDER BY name"""
+    ).fetchall()
+
+    con.close()
+
+    return render_template(
+        "edit_attendance.html",
+        record=record,
+        students=students
+    )
+
+@app.route("/exams",methods=["GET","POST"])
+@login_required
+def exams():
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con=db()
+    if request.method=="POST":
+        if not validate_csrf():
+            con.close()
+            return redirect(url_for("exams"))
+        con.execute("INSERT INTO exams(title,exam_date,subject,full_marks,pass_marks) VALUES(?,?,?,?,?)",
+                    (request.form["title"],request.form["exam_date"],request.form["subject"],
+                     float(request.form.get("full_marks") or 100),float(request.form.get("pass_marks") or 33)))
+        con.commit(); flash("Exam created.","success")
+        return redirect(url_for("exams"))
+    rows=con.execute("SELECT * FROM exams ORDER BY exam_date DESC").fetchall()
+    con.close(); return render_template("exams.html",exams=rows)
+
+
+@app.route("/exams/<int:eid>/edit", methods=["GET", "POST"])
+@login_required
+def edit_exam(eid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con = db()
+
+    exam = con.execute(
+        "SELECT * FROM exams WHERE id=?",
+        (eid,)
+    ).fetchone()
+
+    if not exam:
+        con.close()
+        flash("Exam not found.", "danger")
+        return redirect(url_for("exams"))
+
+    if request.method == "POST":
+        try:
+            con.execute(
+                """UPDATE exams SET
+                   title=?, exam_date=?, subject=?,
+                   full_marks=?, pass_marks=?
+                   WHERE id=?""",
+                (
+                    request.form["title"],
+                    request.form["exam_date"],
+                    request.form["subject"],
+                    float(request.form.get("full_marks") or 100),
+                    float(request.form.get("pass_marks") or 33),
+                    eid
+                )
+            )
+
+            con.commit()
+            flash("Exam updated successfully.", "success")
+            con.close()
+            return redirect(url_for("exams"))
+
+        except (ValueError, TypeError):
+            con.rollback()
+            flash("Invalid exam information.", "danger")
+
+    con.close()
+    return render_template("edit_exam.html", exam=exam)
+
+@app.route("/exams/<int:eid>/marks",methods=["GET","POST"])
+@login_required
+def marks(eid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con=db(); exam=con.execute("SELECT * FROM exams WHERE id=?",(eid,)).fetchone()
+    if not exam: con.close(); return "Exam not found",404
+    if request.method=="POST":
+        for k,v in request.form.items():
+            if k.startswith("mark_"):
+                sid=int(k.split("_")[1])
+                con.execute("""INSERT INTO marks(exam_id,student_id,marks) VALUES(?,?,?)
+                ON CONFLICT(exam_id,student_id) DO UPDATE SET marks=excluded.marks""",
+                (eid,sid,float(v or 0)))
+        con.commit(); flash("Marks saved.","success")
+    rows=con.execute("""SELECT s.id,s.student_id,s.name,COALESCE(m.marks,0) marks
+      FROM students s LEFT JOIN marks m ON m.student_id=s.id AND m.exam_id=?
+      WHERE s.active=1 ORDER BY s.name""",(eid,)).fetchall()
+    con.close(); return render_template("marks.html",exam=exam,students=rows)
+
+@app.get("/marksheet/<int:sid>")
+@login_required
+def marksheet(sid):
+    # Students may only view their own marksheet.
+    if session.get("role") == "student" and session.get("student_id") != sid:
+        flash("You are not authorized to view this marksheet.", "danger")
+        return redirect(url_for("student_dashboard"))
+
+    con = db()
+
+    student = con.execute(
+        "SELECT * FROM students WHERE id=?",
+        (sid,)
+    ).fetchone()
+
+    if not student:
+        con.close()
+        flash("Student not found.", "danger")
+        return redirect(url_for("dashboard"))
+
+    results = con.execute(
+        """SELECT e.*, COALESCE(m.marks,0) marks
+           FROM exams e
+           LEFT JOIN marks m
+             ON m.exam_id=e.id AND m.student_id=?
+           ORDER BY e.exam_date DESC""",
+        (sid,)
+    ).fetchall()
+
+    con.close()
+
+    return render_template(
+        "marksheet.html",
+        student=student,
+        results=results
+    )
+
+
+@app.get("/student-marksheet")
+@login_required
+def student_marksheet():
+    if session.get("role") != "student":
+        return redirect(url_for("dashboard"))
+
+    sid = session.get("student_id")
+    con = db()
+
+    student = con.execute(
+        "SELECT * FROM students WHERE id=?",
+        (sid,)
+    ).fetchone()
+
+    results = con.execute(
+        """SELECT e.*, COALESCE(m.marks,0) marks
+           FROM exams e
+           LEFT JOIN marks m
+             ON m.exam_id=e.id AND m.student_id=?
+           ORDER BY e.exam_date DESC""",
+        (sid,)
+    ).fetchall()
+
+    con.close()
+
+    return render_template(
+        "student_report_marksheet.html",
+        student=student,
+        results=results
+    )
+
+
+@app.get("/student-attendance")
+@login_required
+def student_attendance_report():
+    if session.get("role") != "student":
+        return redirect(url_for("dashboard"))
+
+    sid = session.get("student_id")
+    con = db()
+
+    student = con.execute(
+        "SELECT * FROM students WHERE id=?",
+        (sid,)
+    ).fetchone()
+
+    attendance = con.execute(
+        """SELECT attendance_date,status
+           FROM attendance
+           WHERE student_id=?
+           ORDER BY attendance_date DESC""",
+        (sid,)
+    ).fetchall()
+
+    total = len(attendance)
+    present = sum(
+        1 for a in attendance if a["status"] == "Present"
+    )
+    percentage = round((present / total) * 100, 1) if total else 0
+
+    con.close()
+
+    return render_template(
+        "student_report_attendance.html",
+        student=student,
+        attendance=attendance,
+        total=total,
+        present=present,
+        percentage=percentage
+    )
+
+
+@app.get("/student-fees")
+@login_required
+def student_fees_report():
+    if session.get("role") != "student":
+        return redirect(url_for("dashboard"))
+
+    sid = session.get("student_id")
+    con = db()
+
+    student = con.execute(
+        "SELECT * FROM students WHERE id=?",
+        (sid,)
+    ).fetchone()
+
+    fees = con.execute(
+        """SELECT fee_month,amount,paid_amount,
+                  payment_date,status,note
+           FROM fees
+           WHERE student_id=?
+           ORDER BY fee_month DESC""",
+        (sid,)
+    ).fetchall()
+
+    total_fee = sum(float(f["amount"] or 0) for f in fees)
+    total_paid = sum(float(f["paid_amount"] or 0) for f in fees)
+    total_due = total_fee - total_paid
+
+    con.close()
+
+    return render_template(
+        "student_report_fees.html",
+        student=student,
+        fees=fees,
+        total_fee=total_fee,
+        total_paid=total_paid,
+        total_due=total_due
+    )
+
+@app.route("/finance",methods=["GET","POST"])
+@login_required
+def finance():
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con=db()
+    if request.method=="POST":
+        if not validate_csrf():
+            con.close()
+            return redirect(url_for("finance"))
+        con.execute("INSERT INTO transactions(tx_date,tx_type,category,amount,note) VALUES(?,?,?,?,?)",
+                    (request.form["tx_date"],request.form["tx_type"],request.form["category"],
+                     float(request.form["amount"]),request.form.get("note")))
+        con.commit(); flash("Transaction saved.","success")
+        return redirect(url_for("finance"))
+    rows=con.execute("SELECT * FROM transactions ORDER BY tx_date DESC,id DESC").fetchall()
+    income=con.execute("SELECT COALESCE(SUM(amount),0) s FROM transactions WHERE tx_type='Income'").fetchone()["s"]
+    expense=con.execute("SELECT COALESCE(SUM(amount),0) s FROM transactions WHERE tx_type='Expense'").fetchone()["s"]
+    con.close(); return render_template("finance.html",transactions=rows,income=income,expense=expense)
+
+
+
+@app.route("/finance/<int:tid>/edit", methods=["GET", "POST"])
+@login_required
+def edit_transaction(tid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con = db()
+
+    transaction = con.execute(
+        "SELECT * FROM transactions WHERE id=?",
+        (tid,)
+    ).fetchone()
+
+    if not transaction:
+        con.close()
+        flash("Transaction not found.", "danger")
+        return redirect(url_for("finance"))
+
+    if request.method == "POST":
+        try:
+            con.execute(
+                """UPDATE transactions SET
+                   tx_date=?,
+                   tx_type=?,
+                   category=?,
+                   amount=?,
+                   note=?
+                   WHERE id=?""",
+                (
+                    request.form["tx_date"],
+                    request.form["tx_type"],
+                    request.form["category"],
+                    float(request.form["amount"]),
+                    request.form.get("note"),
+                    tid
+                )
+            )
+
+            con.commit()
+            flash("Transaction updated successfully.", "success")
+            con.close()
+            return redirect(url_for("finance"))
+
+        except (ValueError, TypeError):
+            con.rollback()
+            flash("Invalid transaction information.", "danger")
+
+    con.close()
+
+    return render_template(
+        "edit_transaction.html",
+        transaction=transaction
+    )
+
+@app.route("/fees", methods=["GET","POST"])
+@login_required
+def fees():
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con = db()
+
+    if request.method == "POST":
+        if not validate_csrf():
+            con.close()
+            return redirect(url_for("fees"))
+        try:
+            student_db_id = int(request.form["student_id"])
+            fee_month = request.form["fee_month"]
+            amount = float(request.form.get("amount") or 0)
+            paid_amount = float(request.form.get("paid_amount") or 0)
+            payment_date = request.form.get("payment_date") or None
+            note = request.form.get("note")
+
+            if amount <= 0:
+                flash("Fee amount must be greater than 0.", "danger")
+                con.close()
+                return redirect(url_for("fees"))
+
+            if paid_amount < 0 or paid_amount > amount:
+                flash("Paid amount must be between 0 and total fee.", "danger")
+                con.close()
+                return redirect(url_for("fees"))
+
+            if paid_amount == amount:
+                status = "Paid"
+            elif paid_amount > 0:
+                status = "Partial"
+            else:
+                status = "Unpaid"
+
+            con.execute(
+                """INSERT INTO fees
+                   (student_id,fee_month,amount,paid_amount,payment_date,status,note)
+                   VALUES(?,?,?,?,?,?,?)""",
+                (student_db_id, fee_month, amount, paid_amount,
+                 payment_date, status, note)
+            )
+
+            con.commit()
+            flash("Fee saved successfully.", "success")
+
+        except sqlite3.IntegrityError:
+            con.rollback()
+            flash("Fee for this student and month already exists.", "danger")
+
+        except (ValueError, TypeError):
+            con.rollback()
+            flash("Invalid fee information.", "danger")
+
+        return redirect(url_for("fees"))
+
+    students = con.execute(
+        "SELECT id,student_id,name,class_name,batch FROM students WHERE active=1 ORDER BY name"
+    ).fetchall()
+
+    fee_rows = con.execute(
+        """SELECT f.*,s.student_id AS student_code,s.name,s.class_name,s.batch
+           FROM fees f
+           JOIN students s ON s.id=f.student_id
+           ORDER BY f.fee_month DESC,f.id DESC"""
+    ).fetchall()
+
+    con.close()
+
+    return render_template(
+        "fees.html",
+        students=students,
+        fees=fee_rows
+    )
+
+
+@app.route("/fees/<int:fid>/edit", methods=["GET", "POST"])
+@login_required
+def edit_fee(fid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con = db()
+
+    fee = con.execute(
+        """SELECT f.*, s.name, s.student_id AS student_code
+           FROM fees f
+           JOIN students s ON s.id=f.student_id
+           WHERE f.id=?""",
+        (fid,)
+    ).fetchone()
+
+    if not fee:
+        con.close()
+        flash("Fee record not found.", "danger")
+        return redirect(url_for("fees"))
+
+    if request.method == "POST":
+        try:
+            student_db_id = int(request.form["student_id"])
+            fee_month = request.form["fee_month"]
+            amount = float(request.form.get("amount") or 0)
+            paid_amount = float(request.form.get("paid_amount") or 0)
+            payment_date = request.form.get("payment_date") or None
+            note = request.form.get("note")
+
+            if amount <= 0:
+                raise ValueError("amount")
+
+            if paid_amount < 0 or paid_amount > amount:
+                raise ValueError("paid")
+
+            if paid_amount == amount:
+                status = "Paid"
+            elif paid_amount > 0:
+                status = "Partial"
+            else:
+                status = "Unpaid"
+
+            con.execute(
+                """UPDATE fees SET
+                   student_id=?,
+                   fee_month=?,
+                   amount=?,
+                   paid_amount=?,
+                   payment_date=?,
+                   status=?,
+                   note=?
+                   WHERE id=?""",
+                (
+                    student_db_id,
+                    fee_month,
+                    amount,
+                    paid_amount,
+                    payment_date,
+                    status,
+                    note,
+                    fid
+                )
+            )
+
+            con.commit()
+            flash("Fee updated successfully.", "success")
+            con.close()
+            return redirect(url_for("fees"))
+
+        except sqlite3.IntegrityError:
+            con.rollback()
+            flash("Fee for this student and month already exists.", "danger")
+
+        except (ValueError, TypeError):
+            con.rollback()
+            flash("Invalid fee information.", "danger")
+
+    students = con.execute(
+        """SELECT id,student_id,name,class_name,batch
+           FROM students
+           WHERE active=1
+           ORDER BY name"""
+    ).fetchall()
+
+    con.close()
+
+    return render_template(
+        "edit_fee.html",
+        fee=fee,
+        students=students
+    )
+
+@app.post("/exams/<int:eid>/delete")
+@login_required
+def delete_exam(eid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con = db()
+
+    exam = con.execute(
+        "SELECT id FROM exams WHERE id=?",
+        (eid,)
+    ).fetchone()
+
+    if not exam:
+        con.close()
+        flash("Exam not found.", "danger")
+        return redirect(url_for("exams"))
+
+    # Delete marks linked to this exam first
+    con.execute(
+        "DELETE FROM marks WHERE exam_id=?",
+        (eid,)
+    )
+
+    con.execute(
+        "DELETE FROM exams WHERE id=?",
+        (eid,)
+    )
+
+    con.commit()
+    con.close()
+
+    flash("Exam deleted successfully.", "success")
+    return redirect(url_for("exams"))
+
+
+@app.post("/fees/<int:fid>/delete")
+@login_required
+def delete_fee(fid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con = db()
+
+    fee = con.execute(
+        "SELECT id FROM fees WHERE id=?",
+        (fid,)
+    ).fetchone()
+
+    if not fee:
+        con.close()
+        flash("Fee record not found.", "danger")
+        return redirect(url_for("fees"))
+
+    con.execute(
+        "DELETE FROM fees WHERE id=?",
+        (fid,)
+    )
+
+    con.commit()
+    con.close()
+
+    flash("Fee record deleted successfully.", "success")
+    return redirect(url_for("fees"))
+
+
+@app.route("/calendar",methods=["GET","POST"])
+@login_required
+def calendar():
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con=db()
+    if request.method=="POST":
+        con.execute("""INSERT INTO coaching_days(day_date,status,note) VALUES(?,?,?)
+        ON CONFLICT(day_date) DO UPDATE SET status=excluded.status,note=excluded.note""",
+        (request.form["day_date"],request.form["status"],request.form.get("note")))
+        con.commit(); flash("Coaching day saved.","success")
+    rows=con.execute("SELECT * FROM coaching_days ORDER BY day_date DESC").fetchall()
+    con.close(); return render_template("calendar.html",days=rows)
+
+@app.route("/teachers",methods=["GET","POST"])
+@login_required
+def teachers():
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con=db()
+    if request.method=="POST":
+        if not validate_csrf():
+            con.close()
+            return redirect(url_for("teachers"))
+        con.execute("INSERT INTO teachers(name,phone,subject,salary) VALUES(?,?,?,?)",
+                    (request.form["name"],request.form.get("phone"),request.form.get("subject"),
+                     float(request.form.get("salary") or 0)))
+        con.commit(); flash("Teacher added.","success"); return redirect(url_for("teachers"))
+    rows=con.execute("SELECT * FROM teachers ORDER BY id DESC").fetchall()
+    con.close(); return render_template("teachers.html",teachers=rows)
+
+
+@app.route("/teachers/<int:tid>/edit", methods=["GET", "POST"])
+@login_required
+def edit_teacher(tid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con = db()
+
+    teacher = con.execute(
+        "SELECT * FROM teachers WHERE id=?",
+        (tid,)
+    ).fetchone()
+
+    if not teacher:
+        con.close()
+        flash("Teacher not found.", "danger")
+        return redirect(url_for("teachers"))
+
+    if request.method == "POST":
+        try:
+            con.execute(
+                """UPDATE teachers SET
+                   name=?,
+                   phone=?,
+                   subject=?,
+                   salary=?,
+                   active=?
+                   WHERE id=?""",
+                (
+                    request.form["name"],
+                    request.form.get("phone"),
+                    request.form.get("subject"),
+                    float(request.form.get("salary") or 0),
+                    int(request.form.get("active") or 0),
+                    tid
+                )
+            )
+
+            con.commit()
+            flash("Teacher updated successfully.", "success")
+            con.close()
+            return redirect(url_for("teachers"))
+
+        except (ValueError, TypeError):
+            con.rollback()
+            flash("Invalid teacher information.", "danger")
+
+    con.close()
+    return render_template("edit_teacher.html", teacher=teacher)
+
+@app.post("/teachers/<int:tid>/delete")
+@login_required
+def delete_teacher(tid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con = db()
+
+    teacher = con.execute(
+        "SELECT * FROM teachers WHERE id=?",
+        (tid,)
+    ).fetchone()
+
+    if not teacher:
+        con.close()
+        flash("Teacher not found.", "danger")
+        return redirect(url_for("teachers"))
+
+    # Remove teacher login account if one exists
+    con.execute(
+        "DELETE FROM users WHERE teacher_id=?",
+        (tid,)
+    )
+
+    con.execute(
+        "DELETE FROM teachers WHERE id=?",
+        (tid,)
+    )
+
+    con.commit()
+    con.close()
+
+    flash("Teacher deleted successfully.", "success")
+    return redirect(url_for("teachers"))
+
+
+@app.route("/routine",methods=["GET","POST"])
+@login_required
+def routine():
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con=db()
+    if request.method=="POST":
+        if not validate_csrf():
+            con.close()
+            return redirect(url_for("routine"))
+        con.execute("""INSERT INTO routines(day_name,batch,subject,teacher,start_time,end_time)
+        VALUES(?,?,?,?,?,?)""",(request.form["day_name"],request.form.get("batch"),
+        request.form.get("subject"),request.form.get("teacher"),request.form.get("start_time"),
+        request.form.get("end_time")))
+        con.commit(); flash("Routine added.","success"); return redirect(url_for("routine"))
+    rows=con.execute("SELECT * FROM routines ORDER BY id DESC").fetchall()
+    con.close(); return render_template("routine.html",routines=rows)
+
+
+@app.route("/teacher-assignments", methods=["GET", "POST"])
+@login_required
+def teacher_assignments():
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+
+    con = db()
+
+    if request.method == "POST":
+        if not validate_csrf():
+            con.close()
+            return redirect(url_for("teacher_assignments"))
+        try:
+            teacher_id = int(request.form["teacher_id"])
+            batch = request.form["batch"].strip()
+            subject = request.form["subject"].strip()
+
+            if not batch or not subject:
+                flash("Batch and subject are required.", "danger")
+            else:
+                con.execute(
+                    """INSERT INTO teacher_assignments
+                       (teacher_id, batch, subject, active)
+                       VALUES (?, ?, ?, 1)""",
+                    (teacher_id, batch, subject)
+                )
+                con.commit()
+                flash("Teacher assignment added successfully.", "success")
+
+        except sqlite3.IntegrityError:
+            con.rollback()
+            flash("This teacher, batch and subject assignment already exists.", "danger")
+
+        except (ValueError, TypeError):
+            con.rollback()
+            flash("Invalid assignment information.", "danger")
+
+        con.close()
+        return redirect(url_for("teacher_assignments"))
+
+    teachers = con.execute(
+        """SELECT id, name
+           FROM teachers
+           WHERE active=1
+           ORDER BY name"""
+    ).fetchall()
+
+    assignments = con.execute(
+        """SELECT ta.id,
+                  ta.batch,
+                  ta.subject,
+                  ta.active,
+                  t.name AS teacher_name
+           FROM teacher_assignments ta
+           JOIN teachers t ON t.id = ta.teacher_id
+           ORDER BY t.name, ta.batch, ta.subject"""
+    ).fetchall()
+
+    con.close()
+
+    return render_template(
+        "teacher_assignments.html",
+        teachers=teachers,
+        assignments=assignments
+    )
+
+
+@app.post("/teacher-assignments/<int:aid>/toggle")
+@login_required
+def toggle_teacher_assignment(aid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+
+    con = db()
+
+    con.execute(
+        """UPDATE teacher_assignments
+           SET active = CASE WHEN active=1 THEN 0 ELSE 1 END
+           WHERE id=?""",
+        (aid,)
+    )
+
+    con.commit()
+    con.close()
+
+    flash("Assignment status updated.", "success")
+    return redirect(url_for("teacher_assignments"))
+
+
+@app.post("/teacher-assignments/<int:aid>/delete")
+@login_required
+def delete_teacher_assignment(aid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+
+    con = db()
+
+    con.execute(
+        "DELETE FROM teacher_assignments WHERE id=?",
+        (aid,)
+    )
+
+    con.commit()
+    con.close()
+
+    flash("Teacher assignment deleted.", "success")
+    return redirect(url_for("teacher_assignments"))
+
+@app.route("/routine/<int:rid>/edit", methods=["GET", "POST"])
+@login_required
+def edit_routine(rid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con = db()
+
+    routine_row = con.execute(
+        "SELECT * FROM routines WHERE id=?",
+        (rid,)
+    ).fetchone()
+
+    if not routine_row:
+        con.close()
+        flash("Routine not found.", "danger")
+        return redirect(url_for("routine"))
+
+    if request.method == "POST":
+        try:
+            con.execute(
+                """UPDATE routines SET
+                   day_name=?,
+                   batch=?,
+                   subject=?,
+                   teacher=?,
+                   start_time=?,
+                   end_time=?
+                   WHERE id=?""",
+                (
+                    request.form["day_name"],
+                    request.form.get("batch"),
+                    request.form.get("subject"),
+                    request.form.get("teacher"),
+                    request.form.get("start_time"),
+                    request.form.get("end_time"),
+                    rid
+                )
+            )
+
+            con.commit()
+            con.close()
+            flash("Routine updated successfully.", "success")
+            return redirect(url_for("routine"))
+
+        except Exception:
+            con.rollback()
+            con.close()
+            flash("Invalid routine information.", "danger")
+            return redirect(url_for("routine"))
+
+    con.close()
+    return render_template("edit_routine.html", routine=routine_row)
+
+
+@app.post("/routine/<int:rid>/delete")
+@login_required
+def delete_routine(rid):
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard"))
+    con = db()
+
+    row = con.execute(
+        "SELECT id FROM routines WHERE id=?",
+        (rid,)
+    ).fetchone()
+
+    if not row:
+        con.close()
+        flash("Routine not found.", "danger")
+        return redirect(url_for("routine"))
+
+    con.execute(
+        "DELETE FROM routines WHERE id=?",
+        (rid,)
+    )
+
+    con.commit()
+    con.close()
+
+    flash("Routine deleted successfully.", "success")
+    return redirect(url_for("routine"))
+
+
+if __name__=="__main__":
+    init_db()
+    app.run(debug=True)

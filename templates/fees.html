@@ -1,304 +1,171 @@
 {% extends "base.html" %}
+
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-
-<div>
-<h2 class="fw-bold mb-1">Fees Management</h2>
-<p class="text-muted mb-0">
-Track student payments, dues and fee history.
-</p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">💳 Fee Management</h2>
+        <div class="text-muted">Manage student monthly fees and payments</div>
+    </div>
 </div>
 
-<button class="btn btn-dark"
-data-bs-toggle="modal"
-data-bs-target="#addFee">
-+ Add Fee
-</button>
+<div class="card p-4 mb-4">
+    <h5 class="fw-bold mb-3">Add / Record Fee</h5>
 
-</div>
+    <form method="post">
 
+        <div class="row g-3">
 
-<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="col-md-6">
+                <label class="form-label">Student</label>
+                <select class="form-select" name="student_id" required>
+                    <option value="">Select Student</option>
 
-<div class="table-responsive">
+                    {% for s in students %}
+                    <option value="{{ s.id }}">
+                        {{ s.student_id }} — {{ s.name }}
+                        {% if s.class_name %} ({{ s.class_name }}){% endif %}
+                    </option>
+                    {% endfor %}
 
-<table class="table table-hover align-middle mb-0">
+                </select>
+            </div>
 
-<thead>
-<tr>
+            <div class="col-md-6">
+                <label class="form-label">Fee Month</label>
+                <input class="form-control"
+                       type="month"
+                       name="fee_month"
+                       required>
+            </div>
 
-<th>Student</th>
-<th>Month</th>
-<th>Amount</th>
-<th>Paid</th>
-<th>Due</th>
-<th>Payment Date</th>
-<th>Status</th>
-<th>Actions</th>
+            <div class="col-md-4">
+                <label class="form-label">Total Fee</label>
+                <input class="form-control"
+                       type="number"
+                       name="amount"
+                       step="0.01"
+                       min="0"
+                       required>
+            </div>
 
-</tr>
-</thead>
+            <div class="col-md-4">
+                <label class="form-label">Paid Amount</label>
+                <input class="form-control"
+                       type="number"
+                       name="paid_amount"
+                       step="0.01"
+                       min="0"
+                       value="0"
+                       required>
+            </div>
 
-<tbody>
+            <div class="col-md-4">
+                <label class="form-label">Payment Date</label>
+                <input class="form-control"
+                       type="date"
+                       name="payment_date">
+            </div>
 
-{% for f in fees %}
+            <div class="col-12">
+                <label class="form-label">Note</label>
+                <input class="form-control"
+                       name="note"
+                       placeholder="Optional note">
+            </div>
 
-<tr>
+        </div>
 
-<td>
-<strong>{{f.student_name}}</strong>
-<br>
-<small class="text-muted">
-{{f.student_code}}
-</small>
-</td>
+        <button class="btn btn-dark mt-4">
+            💾 Save Fee
+        </button>
 
-<td>{{f.fee_month}}</td>
-
-<td>
-৳{{"%.2f"|format(f.amount)}}
-</td>
-
-<td class="text-success fw-bold">
-৳{{"%.2f"|format(f.paid_amount)}}
-</td>
-
-<td class="text-danger fw-bold">
-৳{{"%.2f"|format(f.amount-f.paid_amount)}}
-</td>
-
-<td>
-{{f.payment_date or "-"}}
-</td>
-
-<td>
-
-{% if f.status == "Paid" %}
-
-<span class="badge text-bg-success">
-Paid
-</span>
-
-{% elif f.status == "Partial" %}
-
-<span class="badge text-bg-warning">
-Partial
-</span>
-
-{% else %}
-
-<span class="badge text-bg-danger">
-Unpaid
-</span>
-
-{% endif %}
-
-</td>
-
-<td>
-
-<div class="d-flex gap-1">
-
-<a href="{{url_for('edit_fee',fid=f.id)}}"
-class="btn btn-sm btn-outline-warning">
-Edit
-</a>
-
-<form method="post"
-action="{{url_for('delete_fee_record',fid=f.id)}}"
-onsubmit="return confirm('Delete this fee record?');">
-
-<button class="btn btn-sm btn-outline-danger">
-Delete
-</button>
-
-</form>
-
-</div>
-
-</td>
-
-</tr>
-
-{% else %}
-
-<tr>
-
-<td colspan="8"
-class="text-center text-muted py-5">
-
-No fee records found.
-
-</td>
-
-</tr>
-
-{% endfor %}
-
-</tbody>
-
-</table>
-
-</div>
+    </form>
 </div>
 
 
-<!-- ADD FEE -->
+<div class="card p-4">
 
-<div class="modal fade"
-id="addFee"
-tabindex="-1">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0">Fee Records</h5>
+        <span class="badge bg-dark">{{ fees|length }} Records</span>
+    </div>
 
-<div class="modal-dialog modal-dialog-centered">
+    <div class="table-responsive">
 
-<div class="modal-content">
+        <table class="table table-hover">
 
-<form method="post">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Month</th>
+                    <th>Total</th>
+                    <th>Paid</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                    <th>Payment Date</th><th>Action</th>
+                </tr>
+            </thead>
 
-<div class="modal-header">
+            <tbody>
 
-<h5 class="modal-title">
-Add Student Fee
-</h5>
+            {% for f in fees %}
 
-<button type="button"
-class="btn-close"
-data-bs-dismiss="modal">
-</button>
+                <tr>
 
-</div>
+                    <td>
+                        <strong>{{ f.name }}</strong><br>
+                        <small class="text-muted">{{ f.student_code }}</small>
+                    </td>
 
+                    <td>{{ f.fee_month }}</td>
 
-<div class="modal-body">
+                    <td>৳{{ "%.2f"|format(f.amount) }}</td>
 
+                    <td>৳{{ "%.2f"|format(f.paid_amount) }}</td>
 
-<div class="mb-3">
+                    <td>
+                        ৳{{ "%.2f"|format(f.amount - f.paid_amount) }}
+                    </td>
 
-<label class="form-label">
-Student
-</label>
+                    <td>
+                        {% if f.status == "Paid" %}
+                            <span class="badge bg-success">Paid</span>
+                        {% elif f.status == "Partial" %}
+                            <span class="badge bg-warning text-dark">Partial</span>
+                        {% else %}
+                            <span class="badge bg-danger">Unpaid</span>
+                        {% endif %}
+                    </td>
 
-<select name="student_id"
-class="form-select"
-required>
+                    <td>{{ f.payment_date or "-" }}</td>
 
-<option value="">
-Select Student
-</option>
+                    <td>
+                        <a href="{{ url_for('edit_fee', fid=f.id) }}"
+                           class="btn btn-sm btn-warning">
+                            ✏️ Edit
+                        </a>
+                    </td>
 
-{% for s in students %}
+                </tr>
 
-<option value="{{s.id}}">
-{{s.name}} — {{s.student_id}}
-</option>
+            {% else %}
 
-{% endfor %}
+                <tr>
+                    <td colspan="8"
+                        class="text-center text-muted py-4">
+                        No fee records yet.
+                    </td>
+                </tr>
 
-</select>
+            {% endfor %}
 
-</div>
+            </tbody>
 
+        </table>
 
-<div class="mb-3">
+    </div>
 
-<label class="form-label">
-Fee Month
-</label>
-
-<input type="month"
-name="fee_month"
-class="form-control"
-required>
-
-</div>
-
-
-<div class="mb-3">
-
-<label class="form-label">
-Total Amount
-</label>
-
-<input type="number"
-step="0.01"
-min="0"
-name="amount"
-class="form-control"
-required>
-
-</div>
-
-
-<div class="mb-3">
-
-<label class="form-label">
-Paid Amount
-</label>
-
-<input type="number"
-step="0.01"
-min="0"
-name="paid_amount"
-value="0"
-class="form-control"
-required>
-
-</div>
-
-
-<div class="mb-3">
-
-<label class="form-label">
-Payment Date
-</label>
-
-<input type="date"
-name="payment_date"
-class="form-control">
-
-</div>
-
-
-<div class="mb-3">
-
-<label class="form-label">
-Note
-</label>
-
-<textarea name="note"
-class="form-control"
-rows="2"
-placeholder="Optional note"></textarea>
-
-</div>
-
-
-</div>
-
-
-<div class="modal-footer">
-
-<button type="button"
-class="btn btn-outline-secondary"
-data-bs-dismiss="modal">
-
-Cancel
-
-</button>
-
-<button class="btn btn-dark px-4">
-
-Save Fee
-
-</button>
-
-</div>
-
-</form>
-
-</div>
-</div>
 </div>
 
 {% endblock %}

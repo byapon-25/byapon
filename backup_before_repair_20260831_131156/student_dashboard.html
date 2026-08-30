@@ -1,0 +1,654 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+.student-page{
+    max-width:1200px;
+    margin:auto;
+}
+
+.hero-card{
+    position:relative;
+    overflow:hidden;
+    border:0;
+    border-radius:24px;
+    padding:28px;
+    color:white;
+    background:linear-gradient(135deg,#111827,#1e293b 55%,#334155);
+    box-shadow:0 18px 45px rgba(15,23,42,.18);
+}
+
+.hero-card:after{
+    content:"";
+    position:absolute;
+    width:220px;
+    height:220px;
+    right:-70px;
+    top:-90px;
+    border-radius:50%;
+    background:rgba(255,255,255,.08);
+}
+
+.avatar{
+    width:68px;
+    height:68px;
+    border-radius:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+    font-weight:800;
+    background:rgba(255,255,255,.13);
+    border:1px solid rgba(255,255,255,.15);
+}
+
+.info-card{
+    border:0;
+    border-radius:20px;
+    background:#fff;
+    box-shadow:0 10px 30px rgba(15,23,42,.07);
+    transition:.25s;
+}
+
+.info-card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 15px 35px rgba(15,23,42,.11);
+}
+
+.stat-label{
+    font-size:12px;
+    color:#64748b;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    font-weight:700;
+}
+
+.stat-value{
+    font-size:22px;
+    font-weight:800;
+    color:#0f172a;
+}
+
+.section-card{
+    border:0;
+    border-radius:20px;
+    background:#fff;
+    box-shadow:0 10px 30px rgba(15,23,42,.07);
+    overflow:hidden;
+}
+
+.section-head{
+    padding:20px 22px 10px;
+}
+
+.section-title{
+    font-weight:800;
+    color:#0f172a;
+    margin:0;
+}
+
+.modern-table{
+    margin-bottom:0;
+}
+
+.modern-table th{
+    font-size:12px;
+    color:#64748b;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    border-bottom:1px solid #e2e8f0;
+    white-space:nowrap;
+}
+
+.modern-table td{
+    vertical-align:middle;
+    padding-top:15px;
+    padding-bottom:15px;
+}
+
+.status-present{
+    background:#dcfce7;
+    color:#166534;
+    padding:6px 10px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.status-absent{
+    background:#fee2e2;
+    color:#991b1b;
+    padding:6px 10px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.logout-btn{
+    border-radius:12px;
+    font-weight:700;
+    padding:9px 16px;
+}
+
+@media(max-width:576px){
+    .hero-card{
+        padding:22px;
+        border-radius:20px;
+    }
+
+    .hero-title{
+        font-size:22px;
+    }
+
+    .avatar{
+        width:58px;
+        height:58px;
+        border-radius:17px;
+        font-size:23px;
+    }
+
+    .info-card{
+        border-radius:16px;
+    }
+
+    .section-card{
+        border-radius:16px;
+    }
+
+    .section-head{
+        padding:17px 17px 8px;
+    }
+
+    .modern-table{
+        font-size:13px;
+    }
+}
+</style>
+
+<div class="student-page">
+
+    <!-- Hero -->
+    <div class="hero-card mb-4">
+        <div class="d-flex justify-content-between align-items-start gap-3 position-relative">
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="avatar">
+                    {{ student.name[:1]|upper }}
+                </div>
+
+                <div>
+                    <div class="text-white-50 small mb-1">
+                        BYAPON • STUDENT PORTAL
+                    </div>
+
+                    <h2 class="hero-title fw-bold mb-1">
+                        Welcome, {{ student.name }}
+                    </h2>
+
+                    <div class="text-white-50">
+                        Your academic overview
+                    </div>
+                </div>
+            </div>
+
+            <a href="{{ url_for('logout') }}"
+               class="btn btn-light logout-btn">
+                Logout
+            </a>
+
+        </div>
+    </div>
+
+
+    <!-- Quick Information -->
+    <div class="row g-3 mb-4">
+
+        <div class="col-12 col-md-4">
+            <div class="info-card p-4 h-100">
+                <div class="stat-label mb-2">Student ID</div>
+                <div class="stat-value">
+                    {{ student.student_id }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <div class="info-card p-4 h-100">
+                <div class="stat-label mb-2">Class</div>
+                <div class="stat-value">
+                    {{ student.class_name or '-' }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <div class="info-card p-4 h-100">
+                <div class="stat-label mb-2">Batch</div>
+                <div class="stat-value">
+                    {{ student.batch or '-' }}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- Attendance Summary -->
+    <div class="row g-3 mb-4">
+
+        <div class="col-12 col-md-4">
+            <div class="info-card p-4 h-100">
+                <div class="stat-label mb-2">Attendance</div>
+                <div class="stat-value">
+                    {{ attendance_percentage }}%
+                </div>
+                <div class="text-muted small mt-1">
+                    {{ attendance_present }} present out of {{ attendance_total }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-8">
+            <div class="info-card p-4 h-100">
+                <div class="stat-label mb-2">Academic Status</div>
+                <div class="stat-value">
+                    {% if attendance_total == 0 %}
+                        No attendance data
+                    {% elif attendance_percentage >= 75 %}
+                        Good Standing
+                    {% elif attendance_percentage >= 50 %}
+                        Needs Improvement
+                    {% else %}
+                        Attendance Alert
+                    {% endif %}
+                </div>
+                <div class="text-muted small mt-1">
+                    Attendance is calculated from recorded classes.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    
+<!-- Student Reports -->
+<div class="section-card mb-4">
+    <div class="section-head">
+        <h4 class="section-title">My Reports</h4>
+        <div class="text-muted small">
+            View, print or save your personal records.
+        </div>
+    </div>
+
+    <div class="p-3 pt-2">
+        <div class="row g-3">
+
+            <div class="col-12 col-md-4">
+                <a href="{{ url_for('student_marksheet') }}"
+                   class="btn btn-dark w-100 py-3">
+                    📄 My Marksheet
+                </a>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <a href="{{ url_for('student_attendance_report') }}"
+                   class="btn btn-outline-dark w-100 py-3">
+                    ✅ My Attendance
+                </a>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <a href="{{ url_for('student_fees_report') }}"
+                   class="btn btn-outline-dark w-100 py-3">
+                    💳 My Fees
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Fee Summary -->
+<div class="row g-3 mb-4">
+
+    <div class="col-12 col-md-4">
+        <div class="card p-4 h-100">
+            <small class="text-muted">Total Fee</small>
+            <div class="fs-3 fw-bold">৳{{ "%.2f"|format(total_fee) }}</div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <div class="card p-4 h-100">
+            <small class="text-muted">Total Paid</small>
+            <div class="fs-3 fw-bold text-success">
+                ৳{{ "%.2f"|format(total_paid) }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <div class="card p-4 h-100">
+            <small class="text-muted">Total Due</small>
+            <div class="fs-3 fw-bold text-danger">
+                ৳{{ "%.2f"|format(total_due) }}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Fee History -->
+<div class="card p-4 mb-4">
+
+    <h4 class="fw-bold mb-3">💰 Fee History</h4>
+
+    <div class="table-responsive">
+
+        <table class="table table-hover">
+
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Total Fee</th>
+                    <th>Paid</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                    <th>Payment Date</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            {% for f in fees %}
+
+                <tr>
+                    <td>{{ f.fee_month }}</td>
+
+                    <td>
+                        ৳{{ "%.2f"|format(f.amount) }}
+                    </td>
+
+                    <td class="text-success fw-semibold">
+                        ৳{{ "%.2f"|format(f.paid_amount) }}
+                    </td>
+
+                    <td class="text-danger fw-semibold">
+                        ৳{{ "%.2f"|format(f.amount - f.paid_amount) }}
+                    </td>
+
+                    <td>
+                        {% if f.status == "Paid" %}
+                            <span class="badge bg-success">Paid</span>
+                        {% elif f.status == "Partial" %}
+                            <span class="badge bg-warning text-dark">Partial</span>
+                        {% else %}
+                            <span class="badge bg-danger">Unpaid</span>
+                        {% endif %}
+                    </td>
+
+                    <td>{{ f.payment_date or "-" }}</td>
+                </tr>
+
+            {% else %}
+
+                <tr>
+                    <td colspan="6"
+                        class="text-center text-muted py-4">
+                        No fee record available yet.
+                    </td>
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<!-- Student Information -->
+    <div class="section-card mb-4">
+
+        <div class="section-head">
+            <h4 class="section-title">
+                👤 Student Information
+            </h4>
+        </div>
+
+        <div class="p-3 p-md-4">
+            <div class="row g-3">
+
+                <div class="col-12 col-md-6">
+                    <div class="text-muted small">Full Name</div>
+                    <div class="fw-bold">{{ student.name }}</div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <div class="text-muted small">Phone</div>
+                    <div class="fw-bold">{{ student.phone or '-' }}</div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <div class="text-muted small">Guardian</div>
+                    <div class="fw-bold">{{ student.guardian or '-' }}</div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <div class="text-muted small">Guardian Phone</div>
+                    <div class="fw-bold">{{ student.guardian_phone or '-' }}</div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- Attendance -->
+    <div class="section-card mb-4">
+
+        <div class="section-head">
+            <h4 class="section-title">
+                ✅ Attendance
+            </h4>
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table modern-table table-hover">
+
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for a in attendance %}
+
+                    <tr>
+                        <td class="fw-semibold">
+                            {{ a.attendance_date }}
+                        </td>
+
+                        <td>
+                            {% if a.status == "Present" %}
+                                <span class="status-present">
+                                    Present
+                                </span>
+                            {% else %}
+                                <span class="status-absent">
+                                    Absent
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                {% else %}
+
+                    <tr>
+                        <td colspan="2"
+                            class="text-center text-muted py-4">
+                            No attendance record yet.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+    </div>
+
+
+    <!-- Class Routine -->
+    <div class="section-card mb-4">
+
+        <div class="section-head">
+            <h4 class="section-title">
+                📅 Class Routine
+            </h4>
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table modern-table table-hover">
+
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Subject</th>
+                        <th>Teacher</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for r in routines %}
+
+                    <tr>
+                        <td class="fw-semibold">
+                            {{ r.day_name }}
+                        </td>
+
+                        <td>
+                            {{ r.subject or '-' }}
+                        </td>
+
+                        <td>
+                            {{ r.teacher or '-' }}
+                        </td>
+
+                        <td>
+                            {{ r.start_time or '-' }}
+                            {% if r.end_time %}
+                                – {{ r.end_time }}
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                {% else %}
+
+                    <tr>
+                        <td colspan="4"
+                            class="text-center text-muted py-4">
+                            No class routine available yet.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+    </div>
+
+
+    <!-- Results -->
+    <div class="section-card mb-4">
+
+        <div class="section-head">
+            <h4 class="section-title">
+                📝 Examination Results
+            </h4>
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table modern-table table-hover">
+
+                <thead>
+                    <tr>
+                        <th>Exam</th>
+                        <th>Subject</th>
+                        <th>Date</th>
+                        <th>Marks</th>
+                        <th>Full Marks</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for r in results %}
+
+                    <tr>
+
+                        <td class="fw-semibold">
+                            {{ r.title }}
+                        </td>
+
+                        <td>
+                            {{ r.subject }}
+                        </td>
+
+                        <td>
+                            {{ r.exam_date }}
+                        </td>
+
+                        <td>
+                            <strong>{{ r.marks }}</strong>
+                        </td>
+
+                        <td>
+                            {{ r.full_marks }}
+                        </td>
+
+                    </tr>
+
+                {% else %}
+
+                    <tr>
+                        <td colspan="5"
+                            class="text-center text-muted py-4">
+                            No examination result available yet.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+    </div>
+
+    <div class="text-center text-muted small py-3">
+        © BYAPON Coaching • Student Portal
+    </div>
+
+</div>
+
+{% endblock %}

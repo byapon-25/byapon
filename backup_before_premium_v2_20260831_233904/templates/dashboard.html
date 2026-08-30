@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+.admin-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    margin-bottom:25px;
+    flex-wrap:wrap;
+}
+
+.admin-header h2{
+    font-weight:800;
+    margin:0;
+}
+
+.admin-header p{
+    color:#6b7280;
+    margin:5px 0 0;
+}
+
+.stat-card{
+    border:0;
+    border-radius:18px;
+    padding:22px;
+    background:#fff;
+    box-shadow:0 8px 30px rgba(0,0,0,.07);
+    height:100%;
+    transition:.2s;
+}
+
+.stat-card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 12px 35px rgba(0,0,0,.11);
+}
+
+.stat-icon{
+    width:48px;
+    height:48px;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:23px;
+    background:#f1f3f5;
+    margin-bottom:15px;
+}
+
+.stat-label{
+    color:#6b7280;
+    font-size:14px;
+}
+
+.stat-value{
+    font-size:28px;
+    font-weight:800;
+    margin-top:4px;
+}
+
+.section-card{
+    border:0;
+    border-radius:18px;
+    background:#fff;
+    box-shadow:0 8px 30px rgba(0,0,0,.07);
+    padding:22px;
+}
+
+.section-title{
+    font-weight:750;
+    font-size:18px;
+}
+
+.quick-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    margin-top:18px;
+}
+
+.quick-btn{
+    text-decoration:none;
+    color:#111827;
+    border:1px solid #e5e7eb;
+    border-radius:14px;
+    padding:16px 12px;
+    text-align:center;
+    background:#fff;
+    transition:.2s;
+}
+
+.quick-btn:hover{
+    background:#f8fafc;
+    transform:translateY(-2px);
+    color:#111827;
+}
+
+.quick-icon{
+    font-size:24px;
+    margin-bottom:7px;
+}
+
+.quick-name{
+    font-size:13px;
+    font-weight:700;
+}
+
+.table thead th{
+    font-size:13px;
+    color:#6b7280;
+    border-bottom:1px solid #e5e7eb;
+}
+
+.table tbody td{
+    vertical-align:middle;
+}
+
+.empty{
+    text-align:center;
+    color:#9ca3af;
+    padding:25px;
+}
+
+@media(max-width:900px){
+    .quick-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+}
+
+@media(max-width:576px){
+    .stat-value{
+        font-size:24px;
+    }
+
+    .quick-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .section-card{
+        padding:16px;
+    }
+}
+</style>
+
+
+<div class="admin-header">
+    <div>
+        <h2>Admin Dashboard</h2>
+        <p>Welcome to BYAPON Coaching Management System.</p>
+    </div>
+
+    <a href="{{ url_for('logout') }}" class="btn btn-outline-dark">
+        Logout
+    </a>
+</div>
+
+
+<!-- STATISTICS -->
+
+<div class="row g-3">
+
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon">🎓</div>
+            <div class="stat-label">Active Students</div>
+            <div class="stat-value">{{ students }}</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <div class="stat-label">Today's Present</div>
+            <div class="stat-value">{{ present }}</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon">👨‍🏫</div>
+            <div class="stat-label">Active Teachers</div>
+            <div class="stat-value">{{ teachers }}</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-label">Current Balance</div>
+            <div class="stat-value">
+                ৳ {{ '%.2f'|format(income-expense) }}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- FINANCE -->
+
+<div class="row g-3 mt-1">
+
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-label">Total Income</div>
+            <div class="stat-value">
+                ৳ {{ '%.2f'|format(income) }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-label">Total Expense</div>
+            <div class="stat-value">
+                ৳ {{ '%.2f'|format(expense) }}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- QUICK ACTIONS -->
+
+<div class="section-card mt-4">
+
+    <div class="section-title">
+        Quick Management
+    </div>
+
+    <div class="quick-grid">
+
+        <a href="{{ url_for('students') }}" class="quick-btn">
+            <div class="quick-icon">🎓</div>
+            <div class="quick-name">Students</div>
+        </a>
+
+        <a href="{{ url_for('teachers') }}" class="quick-btn">
+            <div class="quick-icon">👨‍🏫</div>
+            <div class="quick-name">Teachers</div>
+        </a>
+
+        <a href="{{ url_for('attendance') }}" class="quick-btn">
+            <div class="quick-icon">📋</div>
+            <div class="quick-name">Attendance</div>
+        </a>
+
+        <a href="{{ url_for('exams') }}" class="quick-btn">
+            <div class="quick-icon">📝</div>
+            <div class="quick-name">Exams</div>
+        </a>
+
+        <a href="{{ url_for('fees') }}" class="quick-btn">
+            <div class="quick-icon">💳</div>
+            <div class="quick-name">Fees</div>
+        </a>
+
+        <a href="{{ url_for('finance') }}" class="quick-btn">
+            <div class="quick-icon">💰</div>
+            <div class="quick-name">Finance</div>
+        </a>
+
+        <a href="{{ url_for('routine') }}" class="quick-btn">
+            <div class="quick-icon">🗓️</div>
+            <div class="quick-name">Routine</div>
+        </a>
+
+        <a href="{{ url_for('calendar') }}" class="quick-btn">
+            <div class="quick-icon">📅</div>
+            <div class="quick-name">Calendar</div>
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- UPCOMING EXAMS -->
+
+<div class="section-card mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="section-title">
+            Upcoming Exams
+        </div>
+
+        <a href="{{ url_for('exams') }}"
+           class="btn btn-sm btn-outline-dark">
+            View All
+        </a>
+    </div>
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Subject</th>
+                    <th>Date</th>
+                    <th>Full Marks</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            {% for e in exams %}
+
+                <tr>
+                    <td><strong>{{ e.title }}</strong></td>
+                    <td>{{ e.subject }}</td>
+                    <td>{{ e.exam_date }}</td>
+                    <td>{{ e.full_marks }}</td>
+                </tr>
+
+            {% else %}
+
+                <tr>
+                    <td colspan="4" class="empty">
+                        No exams yet.
+                    </td>
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}
