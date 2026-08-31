@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+<div>
+<h2 class="fw-bold">{{exam.title}}</h2>
+<p class="text-muted mb-0">
+{{exam.subject}} · Full Marks: {{exam.full_marks}}
+</p>
+</div>
+
+<a href="{{url_for('exams')}}" class="btn btn-outline-secondary">
+← Back
+</a>
+
+</div>
+
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+
+<form method="post">
+
+<div class="table-responsive">
+
+<table class="table table-hover mb-0">
+
+<thead>
+<tr>
+<th>Student ID</th>
+<th>Student Name</th>
+<th>Class / Batch</th>
+<th style="width:180px">Marks</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for s in students %}
+
+<tr>
+
+<td><strong>{{s.student_id}}</strong></td>
+
+<td>{{s.name}}</td>
+
+<td>{{s.class_name or '-'}} / {{s.batch or '-'}}</td>
+
+<td>
+
+<input
+type="number"
+step="0.01"
+min="0"
+max="{{exam.full_marks}}"
+name="mark_{{s.id}}"
+value="{{s.mark}}"
+class="form-control"
+>
+
+</td>
+
+</tr>
+
+{% else %}
+
+<tr>
+<td colspan="4"
+class="text-center py-5 text-muted">
+No active students.
+</td>
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+<div class="p-3">
+<button class="btn btn-success px-4">
+Save Marks
+</button>
+</div>
+
+</form>
+
+</div>
+
+{% endblock %}

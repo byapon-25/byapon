@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card border-0 shadow-sm rounded-4">
+<div class="card-header bg-dark text-white p-4">
+<h4 class="mb-1">Edit Exam</h4>
+<div class="small opacity-75">Update examination information.</div>
+</div>
+<form method="post">
+<div class="card-body p-4">
+<div class="mb-3">
+<label class="form-label">Exam Title</label>
+<input name="title" class="form-control" value="{{exam.title}}" required>
+</div>
+<div class="mb-3">
+<label class="form-label">Subject</label>
+<input name="subject" class="form-control" value="{{exam.subject}}" required>
+</div>
+<div class="mb-3">
+<label class="form-label">Exam Date</label>
+<input type="date" name="exam_date" class="form-control" value="{{exam.exam_date}}" required>
+</div>
+<div class="mb-3">
+<label class="form-label">Full Marks</label>
+<input type="number" step="0.01" min="1" name="full_marks"
+class="form-control" value="{{exam.full_marks}}" required>
+</div>
+</div>
+<div class="card-footer bg-white border-0 p-4 d-flex gap-2">
+<a href="{{url_for('exams')}}" class="btn btn-outline-secondary">Back</a>
+<button class="btn btn-dark">Save Changes</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+{% endblock %}

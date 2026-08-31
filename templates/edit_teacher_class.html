@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Edit Class | BYAPON</title>
+<style>
+body{margin:0;background:#f5f7fb;font-family:Arial;color:#111827}
+.wrap{max-width:700px;margin:40px auto;padding:20px}
+.card{background:#fff;padding:28px;border-radius:22px;box-shadow:0 10px 35px #00000012}
+h1{margin-top:0}
+label{font-weight:700;font-size:13px;display:block;margin-top:18px}
+input{width:100%;padding:13px;margin-top:7px;border:1px solid #d0d5dd;border-radius:10px;box-sizing:border-box}
+.actions{display:flex;gap:10px;margin-top:25px}
+button,.back{padding:12px 18px;border:0;border-radius:10px;text-decoration:none;font-weight:700}
+button{background:#111827;color:#fff}
+.back{background:#eef2f6;color:#111827}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card">
+
+<h1>Edit Class Record</h1>
+<p style="color:#667085">Update date, batch, subject or topic.</p>
+
+<form method="post">
+
+<label>Date</label>
+<input type="date" name="class_date" value="{{class_record.class_date}}" required>
+
+<label>Batch</label>
+<input type="text" name="batch" value="{{class_record.batch}}" required>
+
+<label>Subject</label>
+<input type="text" name="subject" value="{{class_record.subject}}" required>
+
+<label>Topic</label>
+<input type="text" name="topic" value="{{class_record.topic}}" required>
+
+<div class="actions">
+<a class="back" href="{{url_for('teacher_classes')}}">Cancel</a>
+<button type="submit">Save Changes</button>
+</div>
+
+</form>
+
+</div>
+</div>
+</body>
+</html>

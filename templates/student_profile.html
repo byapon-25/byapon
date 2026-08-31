@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="fw-bold mb-4">My Profile</h2>
+
+<div class="card border-0 shadow-sm rounded-4 p-4">
+
+<h3>{{student.name}}</h3>
+
+<hr>
+
+<p><strong>Student ID:</strong> {{student.student_id}}</p>
+
+<p><strong>Class:</strong> {{student.class_name or "-"}}</p>
+
+<p><strong>Batch:</strong> {{student.batch or "-"}}</p>
+
+<p><strong>Phone:</strong> {{student.phone or "-"}}</p>
+
+<p><strong>Address:</strong> {{student.address or "-"}}</p>
+
+</div>
+
+{% endblock %}

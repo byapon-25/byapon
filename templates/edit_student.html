@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row justify-content-center">
+<div class="col-lg-7">
+
+<div class="card border-0 shadow-sm rounded-4">
+
+<div class="card-header bg-dark text-white p-4">
+<h4 class="mb-1">Edit Student</h4>
+<div class="small opacity-75">
+Update student information and password
+</div>
+</div>
+
+<form method="post">
+
+<div class="card-body p-4">
+
+<div class="mb-3">
+<label class="form-label">Student ID</label>
+<input class="form-control"
+       name="student_id"
+       value="{{student.student_id}}"
+       required>
+</div>
+
+<div class="mb-3">
+<label class="form-label">Full Name</label>
+<input class="form-control"
+       name="name"
+       value="{{student.name}}"
+       required>
+</div>
+
+<div class="row">
+
+<div class="col-md-6 mb-3">
+<label class="form-label">Phone</label>
+<input class="form-control"
+       name="phone"
+       value="{{student.phone or ''}}">
+</div>
+
+<div class="col-md-6 mb-3">
+<label class="form-label">Class</label>
+<input class="form-control"
+       name="class_name"
+       value="{{student.class_name or ''}}">
+</div>
+
+</div>
+
+<div class="row">
+
+<div class="col-md-6 mb-3">
+<label class="form-label">Batch</label>
+<input class="form-control"
+       name="batch"
+       value="{{student.batch or ''}}">
+</div>
+
+<div class="col-md-6 mb-3">
+<label class="form-label">Guardian</label>
+<input class="form-control"
+       name="guardian"
+       value="{{student.guardian or ''}}">
+</div>
+
+</div>
+
+<div class="mb-3">
+<label class="form-label">
+Student Password
+</label>
+
+<input type="text"
+       class="form-control"
+       name="password"
+       value="{{student.password}}"
+       required>
+
+<div class="form-text">
+Admin can reset the student's password here.
+</div>
+</div>
+
+<div class="mb-3">
+
+<label class="form-label">Account Status</label>
+
+<select class="form-select" name="active">
+
+<option value="1"
+{% if student.active %}selected{% endif %}>
+Active
+</option>
+
+<option value="0"
+{% if not student.active %}selected{% endif %}>
+Inactive
+</option>
+
+</select>
+
+</div>
+
+</div>
+
+<div class="card-footer bg-white p-4 d-flex justify-content-between">
+
+<a href="{{url_for('students')}}"
+   class="btn btn-outline-secondary">
+← Back
+</a>
+
+<button class="btn btn-dark px-4">
+Save Changes
+</button>
+
+</div>
+
+</form>
+
+</div>
+
+</div>
+</div>
+
+{% endblock %}

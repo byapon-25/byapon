@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+
+<div>
+<h2 class="fw-bold mb-1">Fees Management</h2>
+<p class="text-muted mb-0">
+Track student payments, dues and fee history.
+</p>
+</div>
+
+<button class="btn btn-dark"
+data-bs-toggle="modal"
+data-bs-target="#addFee">
++ Add Fee
+</button>
+
+</div>
+
+
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+
+<div class="table-responsive">
+
+<table class="table table-hover align-middle mb-0">
+
+<thead>
+<tr>
+
+<th>Student</th>
+<th>Month</th>
+<th>Amount</th>
+<th>Paid</th>
+<th>Due</th>
+<th>Payment Date</th>
+<th>Status</th>
+<th>Actions</th>
+
+</tr>
+</thead>
+
+<tbody>
+
+{% for f in fees %}
+
+<tr>
+
+<td>
+<strong>{{f.student_name}}</strong>
+<br>
+<small class="text-muted">
+{{f.student_code}}
+</small>
+</td>
+
+<td>{{f.fee_month}}</td>
+
+<td>
+৳{{"%.2f"|format(f.amount)}}
+</td>
+
+<td class="text-success fw-bold">
+৳{{"%.2f"|format(f.paid_amount)}}
+</td>
+
+<td class="text-danger fw-bold">
+৳{{"%.2f"|format(f.amount-f.paid_amount)}}
+</td>
+
+<td>
+{{f.payment_date or "-"}}
+</td>
+
+<td>
+
+{% if f.status == "Paid" %}
+
+<span class="badge text-bg-success">
+Paid
+</span>
+
+{% elif f.status == "Partial" %}
+
+<span class="badge text-bg-warning">
+Partial
+</span>
+
+{% else %}
+
+<span class="badge text-bg-danger">
+Unpaid
+</span>
+
+{% endif %}
+
+</td>
+
+<td>
+
+<div class="d-flex gap-1">
+
+<a href="{{url_for('edit_fee',fid=f.id)}}"
+class="btn btn-sm btn-outline-warning">
+Edit
+</a>
+
+<form method="post"
+action="{{url_for('delete_fee_record',fid=f.id)}}"
+onsubmit="return confirm('Delete this fee record?');">
+
+<button class="btn btn-sm btn-outline-danger">
+Delete
+</button>
+
+</form>
+
+</div>
+
+</td>
+
+</tr>
+
+{% else %}
+
+<tr>
+
+<td colspan="8"
+class="text-center text-muted py-5">
+
+No fee records found.
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+</div>
+
+
+<!-- ADD FEE -->
+
+<div class="modal fade"
+id="addFee"
+tabindex="-1">
+
+<div class="modal-dialog modal-dialog-centered">
+
+<div class="modal-content">
+
+<form method="post">
+
+<div class="modal-header">
+
+<h5 class="modal-title">
+Add Student Fee
+</h5>
+
+<button type="button"
+class="btn-close"
+data-bs-dismiss="modal">
+</button>
+
+</div>
+
+
+<div class="modal-body">
+
+
+<div class="mb-3">
+
+<label class="form-label">
+Student
+</label>
+
+<select name="student_id"
+class="form-select"
+required>
+
+<option value="">
+Select Student
+</option>
+
+{% for s in students %}
+
+<option value="{{s.id}}">
+{{s.name}} — {{s.student_id}}
+</option>
+
+{% endfor %}
+
+</select>
+
+</div>
+
+
+<div class="mb-3">
+
+<label class="form-label">
+Fee Month
+</label>
+
+<input type="month"
+name="fee_month"
+class="form-control"
+required>
+
+</div>
+
+
+<div class="mb-3">
+
+<label class="form-label">
+Total Amount
+</label>
+
+<input type="number"
+step="0.01"
+min="0"
+name="amount"
+class="form-control"
+required>
+
+</div>
+
+
+<div class="mb-3">
+
+<label class="form-label">
+Paid Amount
+</label>
+
+<input type="number"
+step="0.01"
+min="0"
+name="paid_amount"
+value="0"
+class="form-control"
+required>
+
+</div>
+
+
+<div class="mb-3">
+
+<label class="form-label">
+Payment Date
+</label>
+
+<input type="date"
+name="payment_date"
+class="form-control">
+
+</div>
+
+
+<div class="mb-3">
+
+<label class="form-label">
+Note
+</label>
+
+<textarea name="note"
+class="form-control"
+rows="2"
+placeholder="Optional note"></textarea>
+
+</div>
+
+
+</div>
+
+
+<div class="modal-footer">
+
+<button type="button"
+class="btn btn-outline-secondary"
+data-bs-dismiss="modal">
+
+Cancel
+
+</button>
+
+<button class="btn btn-dark px-4">
+
+Save Fee
+
+</button>
+
+</div>
+
+</form>
+
+</div>
+</div>
+</div>
+
+{% endblock %}

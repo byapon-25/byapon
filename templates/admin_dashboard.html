@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BYAPON | Admin Dashboard</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}
+.top{background:linear-gradient(135deg,#0f172a,#263449);color:#fff;padding:28px 20px}
+.wrap{max-width:1200px;margin:auto}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:15px}
+.logo{font-size:25px;font-weight:800}
+.logout{color:#fff;text-decoration:none;border:1px solid #ffffff44;padding:10px 16px;border-radius:10px}
+.subtitle{color:#cbd5e1;margin-top:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px;padding:28px 0}
+.card{background:#fff;border-radius:20px;padding:24px;box-shadow:0 8px 28px #0000000d;border:1px solid #e8edf4;transition:.2s}
+.card:hover{transform:translateY(-4px);box-shadow:0 14px 35px #00000018}
+.icon{font-size:30px}
+.card h3{margin:15px 0 8px}
+.card p{color:#667085;min-height:40px}
+.card a{display:inline-block;text-decoration:none;background:#111827;color:#fff;padding:11px 17px;border-radius:10px;font-weight:600}
+.section-title{margin-top:15px}
+.footer{text-align:center;color:#98a2b3;padding:30px}
+</style>
+</head>
+<body>
+
+<header class="top">
+<div class="wrap">
+<div class="topline">
+<div class="logo">BYAPON COACHING CENTER</div>
+<a class="logout" href="/logout">Logout</a>
+</div>
+<div class="subtitle">Premium Coaching Management System • Administrator Control Center</div>
+</div>
+</header>
+
+<main class="wrap">
+<h2 class="section-title">Management Center</h2>
+
+<div class="grid">
+
+<div class="card">
+<div class="icon">👨‍🎓</div>
+<h3>Students</h3>
+<p>Add, edit, delete and manage student accounts.</p>
+<a href="/students">Open Students</a>
+</div>
+
+<div class="card">
+<div class="icon">👨‍🏫</div>
+<h3>Teachers</h3>
+<p>Manage teachers, subjects, salary and accounts.</p>
+<a href="/teachers">Open Teachers</a>
+</div>
+
+<div class="card">
+<div class="icon">📅</div>
+<h3>Attendance</h3>
+<p>Manage daily student attendance records.</p>
+<a href="/attendance">Open Attendance</a>
+</div>
+
+<div class="card">
+<div class="icon">📝</div>
+<h3>Exams & Marks</h3>
+<p>Create examinations and enter student marks.</p>
+<a href="/exams">Open Exams</a>
+</div>
+
+<div class="card">
+<div class="icon">💳</div>
+<h3>Fees</h3>
+<p>Track monthly fees, payments and outstanding dues.</p>
+<a href="/fees">Open Fees</a>
+</div>
+
+<div class="card">
+<div class="icon">💰</div>
+<h3>Finance</h3>
+<p>Manage income, expenses and financial records.</p>
+<a href="/finance">Open Finance</a>
+</div>
+
+<div class="card">
+<div class="icon">🗓️</div>
+<h3>Routine</h3>
+<p>Manage weekly class routines and schedules.</p>
+<a href="/routine">Open Routine</a>
+</div>
+
+<div class="card">
+<div class="icon">📚</div>
+<h3>Teacher Classes</h3>
+<p>Track teacher class dates, subjects and topics.</p>
+<a href="/teacher/classes">Open Classes</a>
+</div>
+
+<div class="card">
+<div class="icon">📋</div>
+<h3>Assignments</h3>
+<p>Assign batches and subjects to teachers.</p>
+<a href="/teacher-assignments">Open Assignments</a>
+</div>
+
+<div class="card">
+<div class="icon">🗓️</div>
+<h3>Calendar</h3>
+<p>Manage coaching days, holidays and events.</p>
+<a href="/calendar">Open Calendar</a>
+</div>
+
+
+
+</div>
+</main>
+
+<footer class="footer">
+BYAPON COACHING CENTER © 2026 • Premium Management System
+</footer>
+
+</body>
+</html>
+
+
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body">
+        <h5 class="fw-bold">Account Security</h5>
+        <p class="text-muted mb-3">Change your administrator login password.</p>
+        <a href="{{ url_for('admin_change_password') }}"
+           class="btn btn-outline-dark">
+            🔐 Change Password
+        </a>
+    </div>
+</div>

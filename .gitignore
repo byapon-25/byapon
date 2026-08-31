@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.db
+*.sqlite
+*.sqlite3
+app*.before_*
+app*.backup*
+app*.FINAL_*
+FINAL_*
+templates.backup_*
+templates.before_*
+*.html.before_*

@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Teacher Attendance Print</title>
+<style>
+body{font-family:Arial,sans-serif;margin:30px;color:#111}
+.header{text-align:center;margin-bottom:25px}
+table{width:100%;border-collapse:collapse;margin-top:20px}
+th,td{border:1px solid #222;padding:9px;text-align:left}
+th{background:#eee}
+.print-btn{margin-bottom:20px;padding:9px 16px;border:0;border-radius:6px}
+@media print{
+ .print-btn{display:none}
+ body{margin:10mm}
+}
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">Print Attendance</button>
+
+<div class="header">
+<h1>BYAPON</h1>
+<h2>Teacher Attendance Report</h2>
+{% if teacher %}
+<p>Teacher: {{teacher.name}}</p>
+{% endif %}
+<p>Date: {{selected_date}}</p>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Student ID</th>
+<th>Student Name</th>
+<th>Class</th>
+<th>Batch</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+{% for r in records %}
+<tr>
+<td>{{loop.index}}</td>
+<td>{{r.student_id}}</td>
+<td>{{r.name}}</td>
+<td>{{r.class_name or '-'}}</td>
+<td>{{r.batch or '-'}}</td>
+<td>{{r.attendance_status}}</td>
+</tr>
+{% else %}
+<tr>
+<td colspan="6" style="text-align:center">No students found.</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,345 @@
+
+
+<div class="mb-3">
+<a class="btn btn-outline-dark"
+   href="{{ url_for('teacher_attendance_print') }}">
+   Print Attendance
+</a>
+</div>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Classes | BYAPON</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#f5f7fb;
+    color:#111827
+}
+.top{
+    background:linear-gradient(135deg,#111827,#374151);
+    color:white;
+    padding:25px
+}
+.top-inner{
+    max-width:1150px;
+    margin:auto
+}
+.top a{
+    float:right;
+    color:white;
+    text-decoration:none;
+    border:1px solid #ffffff33;
+    padding:8px 14px;
+    border-radius:9px
+}
+.container{
+    max-width:1150px;
+    margin:auto;
+    padding:25px
+}
+.welcome{
+    margin:20px 0
+}
+.welcome h1{
+    margin:0;
+    font-size:30px;
+    font-weight:800
+}
+.welcome p{
+    color:#667085
+}
+.back{
+    display:inline-block;
+    background:#111827;
+    color:white;
+    padding:10px 17px;
+    border-radius:10px;
+    text-decoration:none;
+    margin-bottom:18px
+}
+.stats{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:16px;
+    margin-bottom:22px
+}
+.stat{
+    background:white;
+    border-radius:18px;
+    padding:22px;
+    box-shadow:0 8px 28px rgba(0,0,0,.06)
+}
+.stat-number{
+    font-size:30px;
+    font-weight:800
+}
+.stat-label{
+    color:#667085;
+    margin-top:5px
+}
+.card{
+    background:white;
+    border-radius:20px;
+    padding:25px;
+    box-shadow:0 8px 28px rgba(0,0,0,.07);
+    margin-bottom:22px
+}
+.card h2{
+    margin-top:0
+}
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:16px
+}
+label{
+    font-weight:700;
+    font-size:13px
+}
+input{
+    width:100%;
+    padding:12px;
+    margin-top:7px;
+    border:1px solid #d0d5dd;
+    border-radius:10px;
+    outline:none
+}
+input:focus{
+    border-color:#111827;
+    box-shadow:0 0 0 3px #11182718
+}
+button{
+    background:#111827;
+    color:white;
+    border:0;
+    padding:11px 18px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:600
+}
+button:hover{
+    opacity:.9
+}
+.table-wrap{
+    overflow-x:auto
+}
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:700px
+}
+th{
+    background:#f8fafc;
+    color:#667085;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.5px
+}
+th,td{
+    padding:14px;
+    border-bottom:1px solid #eaecf0;
+    text-align:left
+}
+.topic{
+    font-weight:700
+}
+.badge{
+    display:inline-block;
+    padding:6px 10px;
+    border-radius:20px;
+    background:#eef2ff;
+    font-size:12px;
+    font-weight:700
+}
+.actions{
+    display:flex;
+    gap:7px;
+    flex-wrap:wrap
+}
+.delete{
+    background:#dc2626
+}
+.empty{
+    text-align:center;
+    padding:40px;
+    color:#667085
+}
+@media(max-width:600px){
+    .container{padding:16px}
+    .card{padding:18px}
+    .top{padding:20px}
+    .welcome h1{font-size:25px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="top">
+<div class="top-inner">
+<a href="/logout">Logout</a>
+<h2>BYAPON COACHING CENTER</h2>
+</div>
+</div>
+
+<div class="container">
+
+<a class="back" href="/dashboard">← Dashboard</a>
+
+<div class="welcome">
+<h1>My Classes</h1>
+<p>
+{% if teacher %}
+Welcome, <strong>{{teacher.name}}</strong>.
+{% else %}
+Manage your class records and teaching history.
+{% endif %}
+</p>
+</div>
+
+<div class="stats">
+
+<div class="stat">
+<div class="stat-number">{{classes|length}}</div>
+<div class="stat-label">Total Classes</div>
+</div>
+
+<div class="stat">
+<div class="stat-number">
+{{classes|map(attribute='batch')|unique|list|length}}
+</div>
+<div class="stat-label">Batches</div>
+</div>
+
+<div class="stat">
+<div class="stat-number">
+{{classes|map(attribute='subject')|unique|list|length}}
+</div>
+<div class="stat-label">Subjects</div>
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>Record New Class</h2>
+
+<form method="post">
+
+<div class="grid">
+
+<div>
+<label>Date</label>
+<input type="date" name="class_date" required>
+</div>
+
+<div>
+<label>Batch</label>
+<input type="text" name="batch" placeholder="e.g. HSC 2027" required>
+</div>
+
+<div>
+<label>Subject</label>
+<input type="text" name="subject" placeholder="e.g. Mathematics" required>
+</div>
+
+<div>
+<label>Topic</label>
+<input type="text" name="topic" placeholder="Today's topic" required>
+</div>
+
+</div>
+
+<br>
+
+<button type="submit">+ Save Class Record</button>
+
+</form>
+
+</div>
+
+<div class="card">
+
+<h2>Class History</h2>
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+<tr>
+<th>Date</th>
+<th>Batch</th>
+<th>Subject</th>
+<th>Topic</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for c in classes %}
+
+<tr>
+
+<td>{{c.class_date}}</td>
+
+<td>
+<span class="badge">{{c.batch}}</span>
+</td>
+
+<td>{{c.subject}}</td>
+
+<td class="topic">{{c.topic}}</td>
+
+<td>
+
+<div class="actions">
+
+<a href="/teacher/classes/{{c.id}}/edit"
+style="background:#f59e0b;color:white;text-decoration:none;padding:9px 13px;border-radius:9px;font-size:13px">
+✏️ Edit
+</a>
+
+<form method="post"
+action="/teacher/classes/{{c.id}}/delete"
+onsubmit="return confirm('Delete this class record permanently?');">
+
+<button class="delete">🗑️ Delete</button>
+
+</form>
+
+</div>
+
+</td>
+
+</tr>
+
+{% else %}
+
+<tr>
+<td colspan="5" class="empty">
+No class records yet.
+</td>
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Attendance Report - {{student.name}}</title>
+
+<style>
+body{
+font-family:Arial,sans-serif;
+margin:40px;
+color:#111;
+}
+
+.header{
+text-align:center;
+border-bottom:2px solid #111;
+padding-bottom:15px;
+margin-bottom:25px;
+}
+
+.info{
+margin-bottom:20px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+th,td{
+border:1px solid #bbb;
+padding:10px;
+text-align:left;
+}
+
+th{
+background:#f1f1f1;
+}
+
+.print-btn{
+padding:10px 20px;
+border:0;
+background:#111;
+color:#fff;
+border-radius:7px;
+margin-bottom:20px;
+}
+
+@media print{
+.print-btn{
+display:none;
+}
+
+body{
+margin:15px;
+}
+}
+</style>
+
+</head>
+
+<body>
+
+<button class="print-btn" onclick="window.print()">
+Print
+</button>
+
+<div class="header">
+<h1>BYAPON COACHING CENTER</h1>
+<h2>Attendance Report</h2>
+</div>
+
+<div class="info">
+
+<strong>Student ID:</strong>
+{{student.student_id}}
+<br>
+
+<strong>Student Name:</strong>
+{{student.name}}
+<br>
+
+<strong>Class:</strong>
+{{student.class_name or '-'}}
+<br>
+
+<strong>Batch:</strong>
+{{student.batch or '-'}}
+
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>Date</th>
+<th>Status</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for r in records %}
+
+<tr>
+<td>{{r.attendance_date}}</td>
+<td>{{r.status}}</td>
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</body>
+</html>

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-7">
+<div class="card border-0 shadow-sm rounded-4">
+<div class="card-header bg-dark text-white p-4"><h4 class="mb-0">Edit Routine</h4></div>
+<form method="post"><div class="card-body p-4">
+<div class="mb-3"><label class="form-label">Day</label>
+<input name="day_name" class="form-control" value="{{row.day_name}}" required></div>
+<div class="mb-3"><label class="form-label">Batch</label>
+<input name="batch" class="form-control" value="{{row.batch}}" required></div>
+<div class="mb-3"><label class="form-label">Subject</label>
+<input name="subject" class="form-control" value="{{row.subject}}" required></div>
+<div class="mb-3"><label class="form-label">Teacher</label>
+<input name="teacher" class="form-control" value="{{row.teacher}}" ></div>
+<div class="row"><div class="col-md-6 mb-3"><label class="form-label">Start Time</label>
+<input type="time" name="start_time" class="form-control" value="{{row.start_time}}" required></div>
+<div class="col-md-6 mb-3"><label class="form-label">End Time</label>
+<input type="time" name="end_time" class="form-control" value="{{row.end_time}}" required></div></div>
+</div><div class="card-footer p-3">
+<a href="{{url_for('routine')}}" class="btn btn-outline-secondary">Back</a>
+<button class="btn btn-dark">Save Changes</button>
+</div></form></div></div></div>
+{% endblock %}
