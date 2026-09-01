@@ -414,7 +414,7 @@ def teacher_dashboard():
         routines=routines
     )
 
-@app.get("/")
+@app.get("/dashboard")
 @login_required
 def dashboard():
     if session.get("role") != "admin":
