@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BYAPON Premium Admin</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#0b1020;color:#fff}
+header{padding:25px;background:linear-gradient(135deg,#151d38,#242b55);border-bottom:1px solid #39446f}
+h1{margin:0;font-size:28px}header p{margin:7px 0 0;color:#aeb8d6}
+main{padding:22px;max-width:1200px;margin:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}
+.card{background:#151d33;border:1px solid #2b3658;border-radius:18px;padding:22px;box-shadow:0 10px 30px #0004}
+.label{color:#9da8c7;font-size:14px}.num{font-size:32px;font-weight:bold;margin-top:10px}
+.title{margin:30px 0 15px;font-size:20px}
+.modules{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.module{padding:20px;border-radius:16px;background:#18213b;border:1px solid #303d63}
+.module b{font-size:17px}.module span{display:block;color:#9da8c7;margin-top:7px}
+</style>
+</head>
+<body>
+<header>
+<h1>BYAPON Coaching Center</h1>
+<p>Premium Admin Dashboard</p>
+</header>
+<main>
+<div class="grid">
+<div class="card"><div class="label">Students</div><div class="num">{{stats.students}}</div></div>
+<div class="card"><div class="label">Teachers</div><div class="num">{{stats.teachers}}</div></div>
+<div class="card"><div class="label">Attendance</div><div class="num">{{stats.attendance}}</div></div>
+<div class="card"><div class="label">Exams</div><div class="num">{{stats.exams}}</div></div>
+<div class="card"><div class="label">Fees</div><div class="num">{{stats.fees}}</div></div>
+<div class="card"><div class="label">Transactions</div><div class="num">{{stats.transactions}}</div></div>
+</div>
+
+<div class="title">Management Modules</div>
+<div class="modules">
+<div class="module"><b>👨‍🎓 Students</b><span>Manage student records</span></div>
+<div class="module"><b>👨‍🏫 Teachers</b><span>Teacher management</span></div>
+<div class="module"><b>📋 Attendance</b><span>Track daily attendance</span></div>
+<div class="module"><b>📝 Exams & Marks</b><span>Exams and marksheets</span></div>
+<div class="module"><b>💰 Fees & Finance</b><span>Fees, income and expenses</span></div>
+<div class="module"><b>📅 Routine</b><span>Class schedules</span></div>
+</div>
+</main>
+</body>
+</html>

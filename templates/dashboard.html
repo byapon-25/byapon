@@ -1,1 +1,75 @@
+<<<<<<< HEAD
 <html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dashboard - BYAPON</title></head><body><h1>BYAPON Dashboard</h1><p>Welcome to the Coaching Management System.</p><hr><h3>Quick Stats</h3><p>Students: {{ students }}</p><p>Teachers: {{ teachers }}</p><p>Income: ৳{{ income }}</p><p>Expense: ৳{{ expense }}</p><p>Balance: ৳{{ balance }}</p><p>Present Today: {{ present_today }}</p><hr><a href="/logout">Logout</a></body></html>
+=======
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>BYAPON Coaching Center</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:#070b16;color:#fff;min-height:100vh}
+nav{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 7%;border-bottom:1px solid #20283b;background:#0b1020;position:sticky;top:0;z-index:5}
+.logo{font-size:25px;font-weight:900;letter-spacing:1px}.logo span{color:#42e8a4}
+.navbtn{border:1px solid #42e8a4;color:#42e8a4;padding:10px 18px;border-radius:25px;text-decoration:none;font-weight:bold}
+.hero{padding:75px 7% 55px;display:grid;grid-template-columns:1.15fr .85fr;gap:45px;align-items:center;background:radial-gradient(circle at 80% 20%,#153d43 0,#070b16 42%)}
+.badge{display:inline-block;padding:8px 15px;border:1px solid #42e8a4;border-radius:30px;color:#42e8a4;font-size:13px;font-weight:bold;margin-bottom:20px}
+h1{font-size:clamp(42px,7vw,76px);line-height:1.02;margin-bottom:20px}h1 span{color:#42e8a4}
+.hero p{font-size:18px;color:#aeb8cc;line-height:1.7;max-width:650px}
+.buttons{display:flex;gap:14px;margin-top:30px;flex-wrap:wrap}
+.btn{padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:800;display:inline-block}
+.primary{background:#42e8a4;color:#06120d}.secondary{border:1px solid #39445b;color:white}
+.card{background:linear-gradient(145deg,#121a2c,#0c1220);border:1px solid #27334a;border-radius:25px;padding:28px;box-shadow:0 20px 60px #0008}
+.card h2{font-size:25px;margin-bottom:22px}.stat{display:flex;justify-content:space-between;padding:17px 0;border-bottom:1px solid #263047;color:#aeb8cc}.stat b{color:#fff}
+.section{padding:55px 7%}.section h2{text-align:center;font-size:35px;margin-bottom:35px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.feature{background:#101729;border:1px solid #253149;padding:25px;border-radius:18px}.icon{font-size:30px;margin-bottom:15px}.feature h3{margin-bottom:9px}.feature p{color:#9da8bb;line-height:1.5;font-size:14px}
+.login{padding:55px 7%;background:#0b1020}.login h2{text-align:center;margin-bottom:28px}.login-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.login-card{text-align:center;padding:28px;border:1px solid #29364e;border-radius:18px;background:#11192b}.login-card a{display:block;margin-top:18px;color:#42e8a4;text-decoration:none;font-weight:bold}
+footer{text-align:center;padding:30px;color:#68758d;border-top:1px solid #20283b}
+@media(max-width:800px){.hero{grid-template-columns:1fr;padding-top:50px}.grid{grid-template-columns:repeat(2,1fr)}.login-grid{grid-template-columns:1fr}nav{padding:0 5%}}
+@media(max-width:500px){.grid{grid-template-columns:1fr}h1{font-size:46px}}
+</style>
+</head>
+<body>
+<nav><div class="logo">BYAPON <span>COACHING CENTER</span></div><a class="navbtn" href="/admin-login">Admin Login</a></nav>
+
+<section class="hero">
+<div>
+<div class="badge">SMART • DISCIPLINED • FUTURE READY</div>
+<h1>Build Your <span>Future</span> With BYAPON.</h1>
+<p>A modern coaching management platform designed to connect students, teachers and administration in one powerful system.</p>
+<div class="buttons"><a class="btn primary" href="/admin-login">Enter Admin Portal</a><a class="btn secondary" href="/student-login">Student Portal</a><a class="btn secondary" href="/teacher-login">Teacher Portal</a></div>
+</div>
+<div class="card">
+<h2>BYAPON Management System</h2>
+<div class="stat"><span>Student Management</span><b>✓</b></div>
+<div class="stat"><span>Teacher Management</span><b>✓</b></div>
+<div class="stat"><span>Attendance & Exams</span><b>✓</b></div>
+<div class="stat"><span>Fees & Finance</span><b>✓</b></div>
+<div class="stat"><span>Routine & Assignments</span><b>✓</b></div>
+</div>
+</section>
+
+<section class="section">
+<h2>Everything You Need</h2>
+<div class="grid">
+<div class="feature"><div class="icon">🎓</div><h3>Students</h3><p>Manage student profiles, batches, fees and academic information.</p></div>
+<div class="feature"><div class="icon">👨‍🏫</div><h3>Teachers</h3><p>Manage teachers, subjects, salaries and batch assignments.</p></div>
+<div class="feature"><div class="icon">📊</div><h3>Exams & Results</h3><p>Create exams, record marks and manage academic performance.</p></div>
+<div class="feature"><div class="icon">💳</div><h3>Finance</h3><p>Track fees, income, expenses and financial transactions.</p></div>
+</div>
+</section>
+
+<section class="login">
+<h2>Choose Your Portal</h2>
+<div class="login-grid">
+<div class="login-card"><h3>ADMIN</h3><p>Complete coaching management</p><a href="/admin-login">Open Admin Portal →</a></div>
+<div class="login-card"><h3>TEACHER</h3><p>Teaching and student tools</p><a href="/teacher-login">Open Teacher Portal →</a></div>
+<div class="login-card"><h3>STUDENT</h3><p>Academic and personal portal</p><a href="/student-login">Open Student Portal →</a></div>
+</div>
+</section>
+
+<footer>© 2026 BYAPON Coaching Center • Smart Coaching Management System</footer>
+</body>
+</html>
+>>>>>>> 982c4bf (Finalize BYAPON management system and student auto login)

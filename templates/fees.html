@@ -5,80 +5,20 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2 class="fw-bold mb-1">💳 Fee Management</h2>
-        <div class="text-muted">Manage student monthly fees and payments</div>
+        <div class="text-muted">Manage student monthly fees and payments<div class="no-print d-flex gap-2 mt-3">
+    <button type="button" onclick="window.print()" class="btn btn-dark">
+        🖨️ Print
+    </button>
+    <button type="button" onclick="window.print()" class="btn btn-outline-dark">
+        📥 Save PDF
+    </button>
+</div>
+</div>
     </div>
 </div>
 
 <div class="card p-4 mb-4">
     <h5 class="fw-bold mb-3">Add / Record Fee</h5>
-
-    <form method="post">
-
-        <div class="row g-3">
-
-            <div class="col-md-6">
-                <label class="form-label">Student</label>
-                <select class="form-select" name="student_id" required>
-                    <option value="">Select Student</option>
-
-                    {% for s in students %}
-                    <option value="{{ s.id }}">
-                        {{ s.student_id }} — {{ s.name }}
-                        {% if s.class_name %} ({{ s.class_name }}){% endif %}
-                    </option>
-                    {% endfor %}
-
-                </select>
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">Fee Month</label>
-                <input class="form-control"
-                       type="month"
-                       name="fee_month"
-                       required>
-            </div>
-
-            <div class="col-md-4">
-                <label class="form-label">Total Fee</label>
-                <input class="form-control"
-                       type="number"
-                       name="amount"
-                       step="0.01"
-                       min="0"
-                       required>
-            </div>
-
-            <div class="col-md-4">
-                <label class="form-label">Paid Amount</label>
-                <input class="form-control"
-                       type="number"
-                       name="paid_amount"
-                       step="0.01"
-                       min="0"
-                       value="0"
-                       required>
-            </div>
-
-            <div class="col-md-4">
-                <label class="form-label">Payment Date</label>
-                <input class="form-control"
-                       type="date"
-                       name="payment_date">
-            </div>
-
-            <div class="col-12">
-                <label class="form-label">Note</label>
-                <input class="form-control"
-                       name="note"
-                       placeholder="Optional note">
-            </div>
-
-        </div>
-
-        <button class="btn btn-dark mt-4">
-            💾 Save Fee
-        </button>
 
     </form>
 </div>
@@ -145,6 +85,15 @@
                            class="btn btn-sm btn-warning">
                             ✏️ Edit
                         </a>
+
+                        <form class="d-inline"
+                              method="post"
+                              action="{{ url_for('delete_fee', fid=f.id) }}"
+                              onsubmit="return confirm('Are you sure you want to delete this fee record?');">
+<button type="submit" class="btn btn-sm btn-danger">
+                                🗑️ Delete
+                            </button>
+                        </form>
                     </td>
 
                 </tr>

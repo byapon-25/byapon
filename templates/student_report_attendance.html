@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.report-box{
+    max-width:1000px;
+    margin:auto;
+    background:#fff;
+    border-radius:20px;
+    padding:30px;
+    box-shadow:0 10px 35px rgba(15,23,42,.08);
+}
+.coaching-name{
+    font-size:28px;
+    font-weight:900;
+}
+@media print{
+    body{background:#fff!important;}
+    .no-print{display:none!important;}
+    .report-box{
+        box-shadow:none!important;
+        border-radius:0!important;
+        max-width:none!important;
+    }
+}
+</style>
+
+<div class="report-box">
+
+    <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4">
+        <div>
+            <div class="coaching-name">BYAPON Coaching</div>
+            <div class="text-muted">Student Attendance Report</div>
+        </div>
+
+        <div class="no-print d-flex gap-2">
+            <button onclick="window.print()" class="btn btn-dark">
+                🖨️ Print
+            </button>
+            <button onclick="window.print()" class="btn btn-outline-dark">
+                📥 Save PDF
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h4 class="fw-bold mb-1">{{ student.name }}</h4>
+            <div>Student ID: <strong>{{ student.student_id }}</strong></div>
+        </div>
+        <div class="col-md-6">
+            <div>Class: <strong>{{ student.class_name or '-' }}</strong></div>
+            <div>Batch: <strong>{{ student.batch or '-' }}</strong></div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="border rounded p-3 text-center">
+                <small class="text-muted">Total Classes</small>
+                <div class="fs-3 fw-bold">{{ total }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="border rounded p-3 text-center">
+                <small class="text-muted">Present</small>
+                <div class="fs-3 fw-bold text-success">{{ present }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="border rounded p-3 text-center">
+                <small class="text-muted">Attendance</small>
+                <div class="fs-3 fw-bold">{{ percentage }}%</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for a in attendance %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ a.attendance_date }}</td>
+                    <td>
+                        {% if a.status == "Present" %}
+                            <span class="badge bg-success">Present</span>
+                        {% else %}
+                            <span class="badge bg-danger">{{ a.status }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="3" class="text-center text-muted py-4">
+                        No attendance records yet.
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>BYAPON Coaching Center | Premium</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#07111f;color:#fff;overflow-x:hidden}
+nav{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 7%;background:rgba(7,17,31,.92);border-bottom:1px solid #26364d;position:sticky;top:0;z-index:10}
+.logo{font-size:25px;font-weight:900;letter-spacing:1px}.logo span{color:#35d0ba}
+.navbtn{display:flex;gap:10px}.btn{padding:11px 18px;border-radius:10px;text-decoration:none;color:#fff;border:1px solid #40536d;font-weight:700}.primary{background:#35d0ba;color:#06121e;border:0}
+.hero{min-height:calc(100vh - 72px);display:flex;align-items:center;padding:70px 7%;position:relative;background:radial-gradient(circle at 80% 30%,#123f52 0,#07111f 45%)}
+.hero:after{content:"";position:absolute;width:320px;height:320px;border-radius:50%;background:#35d0ba;filter:blur(120px);opacity:.16;right:8%;top:18%}
+.content{max-width:720px;position:relative;z-index:2}.tag{display:inline-block;padding:8px 14px;border:1px solid #31566b;border-radius:30px;color:#66e6d2;margin-bottom:22px}
+h1{font-size:clamp(45px,7vw,82px);line-height:.98;margin-bottom:22px}h1 span{color:#35d0ba}
+.desc{font-size:19px;line-height:1.7;color:#b7c4d5;max-width:650px;margin-bottom:32px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:60px 7%;background:#0a1625}
+.card{padding:25px;border:1px solid #26384f;border-radius:18px;background:#0d1b2c}.icon{font-size:30px;margin-bottom:15px}.card h3{margin-bottom:8px}.card p{color:#91a2b7;line-height:1.5}
+@media(max-width:800px){.cards{grid-template-columns:repeat(2,1fr)}nav{padding:0 4%}.hero{padding:55px 5%}}
+@media(max-width:500px){.cards{grid-template-columns:1fr}.navbtn .btn:first-child{display:none}.logo{font-size:20px}}
+</style>
+</head>
+<body>
+<nav>
+<div class="logo">BYAPON <span>COACHING CENTER</span></div>
+<div class="navbtn">
+<a class="btn" href="/teacher-login">Teacher</a>
+<a class="btn primary" href="/admin-login">Admin Portal</a>
+</div>
+</nav>
+
+<section class="hero">
+<div class="content">
+<div class="tag">PREMIUM COACHING MANAGEMENT SYSTEM</div>
+<h1>Learn Better.<br><span>Perform Better.</span></h1>
+<p class="desc">A modern coaching management platform for students, teachers and administrators. Manage academic performance, attendance, fees, examinations and daily operations from one powerful system.</p>
+<div class="navbtn">
+<a class="btn primary" href="/student-login">Student Portal</a>
+<a class="btn" href="/login">Login</a>
+</div>
+</div>
+</section>
+
+<section class="cards">
+<div class="card"><div class="icon">🎓</div><h3>Student Management</h3><p>Manage student profiles, batches, guardians and academic information.</p></div>
+<div class="card"><div class="icon">👨‍🏫</div><h3>Teacher Management</h3><p>Manage teachers, subjects, assignments and professional information.</p></div>
+<div class="card"><div class="icon">📊</div><h3>Results & Exams</h3><p>Organize exams, marks and performance records with ease.</p></div>
+<div class="card"><div class="icon">💳</div><h3>Finance Control</h3><p>Track fees, income, expenses and financial activity in one place.</p></div>
+</section>
+</body>
+</html>

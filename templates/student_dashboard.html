@@ -272,7 +272,45 @@
     </div>
 
 
-    <!-- Fee Summary -->
+    
+<!-- Student Reports -->
+<div class="section-card mb-4">
+    <div class="section-head">
+        <h4 class="section-title">My Reports</h4>
+        <div class="text-muted small">
+            View, print or save your personal records.
+        </div>
+    </div>
+
+    <div class="p-3 pt-2">
+        <div class="row g-3">
+
+            <div class="col-12 col-md-4">
+                <a href="{{ url_for('student_marksheet') }}"
+                   class="btn btn-dark w-100 py-3">
+                    📄 My Marksheet
+                </a>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <a href="{{ url_for('student_attendance_report') }}"
+                   class="btn btn-outline-dark w-100 py-3">
+                    ✅ My Attendance
+                </a>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <a href="{{ url_for('student_fees_report') }}"
+                   class="btn btn-outline-dark w-100 py-3">
+                    💳 My Fees
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Fee Summary -->
 <div class="row g-3 mb-4">
 
     <div class="col-12 col-md-4">

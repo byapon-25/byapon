@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 byapon.db
 *.db
 .env
@@ -15,3 +16,14 @@ app.py.FINAL_BACKUP_*
 app.py.attendance_backup_*
 app.py.backup_*
 templates.backup_*/
+=======
+.env
+.secret_key
+__pycache__/
+*.bak
+*.backup
+app.py.*
+coaching.db
+coaching.db.*
+backup_*/
+>>>>>>> 982c4bf (Finalize BYAPON management system and student auto login)

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!doctype html>
 <html lang="en">
 <head>
@@ -103,10 +104,156 @@ Subject:
 </p>
 
 {% endif %}
+=======
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+
+.teacher-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    flex-wrap:wrap;
+    margin-bottom:25px;
+}
+
+.teacher-header h2{
+    font-weight:800;
+    margin:0;
+}
+
+.teacher-subtitle{
+    color:#6b7280;
+    margin-top:5px;
+}
+
+.info-card{
+    border:0;
+    border-radius:18px;
+    padding:22px;
+    background:#fff;
+    box-shadow:0 7px 28px rgba(0,0,0,.06);
+    height:100%;
+}
+
+.info-label{
+    color:#6b7280;
+    font-size:13px;
+    margin-bottom:7px;
+}
+
+.info-value{
+    font-size:20px;
+    font-weight:800;
+}
+
+.info-icon{
+    width:44px;
+    height:44px;
+    border-radius:12px;
+    background:#f1f3f5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:21px;
+    margin-bottom:14px;
+}
+
+.section-card{
+    border:0;
+    border-radius:18px;
+    background:#fff;
+    box-shadow:0 7px 28px rgba(0,0,0,.06);
+    padding:22px;
+}
+
+.section-title{
+    font-size:18px;
+    font-weight:800;
+}
+
+.section-subtitle{
+    color:#6b7280;
+    font-size:13px;
+    margin-top:3px;
+}
+
+.routine-table{
+    min-width:650px;
+}
+
+.routine-table th{
+    font-size:12px;
+    color:#6b7280;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+    background:#f8fafc;
+}
+
+.routine-table td,
+.routine-table th{
+    padding:14px;
+    vertical-align:middle;
+}
+
+.day-badge{
+    display:inline-block;
+    padding:5px 10px;
+    border-radius:20px;
+    background:#f1f5f9;
+    font-size:12px;
+    font-weight:700;
+}
+
+.time-badge{
+    font-weight:700;
+    font-size:13px;
+}
+
+@media(max-width:576px){
+
+    .teacher-header .btn{
+        width:100%;
+    }
+
+    .section-card{
+        padding:16px;
+    }
+
+}
+
+</style>
+
+
+<!-- HEADER -->
+
+<div class="teacher-header">
+
+    <div>
+
+        <h2>Teacher Dashboard</h2>
+
+        <div class="teacher-subtitle">
+            Welcome back, {{ teacher.name }}.
+        </div>
+
+    </div>
+
+    <a
+        href="{{ url_for('logout') }}"
+        class="btn btn-outline-danger"
+    >
+        Logout
+    </a>
+>>>>>>> 982c4bf (Finalize BYAPON management system and student auto login)
 
 </div>
 
 
+<<<<<<< HEAD
 <div class="grid">
 
 <div class="card">
@@ -120,10 +267,78 @@ View your assigned batches and subjects.
 <a href="#assignments">
 View Assignments
 </a>
+=======
+<!-- TEACHER INFORMATION -->
+
+<div class="row g-3 mb-4">
+
+    <div class="col-12 col-md-4">
+
+        <div class="info-card">
+
+            <div class="info-icon">
+                👨‍🏫
+            </div>
+
+            <div class="info-label">
+                Teacher
+            </div>
+
+            <div class="info-value">
+                {{ teacher.name }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-12 col-md-4">
+
+        <div class="info-card">
+
+            <div class="info-icon">
+                📚
+            </div>
+
+            <div class="info-label">
+                Subject
+            </div>
+
+            <div class="info-value">
+                {{ teacher.subject or "Not assigned" }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-12 col-md-4">
+
+        <div class="info-card">
+
+            <div class="info-icon">
+                📞
+            </div>
+
+            <div class="info-label">
+                Phone
+            </div>
+
+            <div class="info-value">
+                {{ teacher.phone or "Not available" }}
+            </div>
+
+        </div>
+
+    </div>
+>>>>>>> 982c4bf (Finalize BYAPON management system and student auto login)
 
 </div>
 
 
+<<<<<<< HEAD
 <div class="card">
 
 <h2>📝 Class Records</h2>
@@ -205,3 +420,99 @@ No assignments found.
 </body>
 </html>
 {% endif %}
+=======
+<!-- ROUTINE -->
+
+<div class="section-card">
+
+    <div class="mb-3">
+
+        <div class="section-title">
+            My Routine
+        </div>
+
+        <div class="section-subtitle">
+            Your assigned classes and teaching schedule.
+        </div>
+
+    </div>
+
+
+    <div class="table-responsive">
+
+        <table class="table table-hover routine-table">
+
+            <thead>
+
+                <tr>
+                    <th>Day</th>
+                    <th>Batch</th>
+                    <th>Subject</th>
+                    <th>Start</th>
+                    <th>End</th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+            {% for r in routines %}
+
+                <tr>
+
+                    <td>
+                        <span class="day-badge">
+                            {{ r.day_name }}
+                        </span>
+                    </td>
+
+                    <td>
+                        {{ r.batch or "—" }}
+                    </td>
+
+                    <td>
+                        <strong>
+                            {{ r.subject or "—" }}
+                        </strong>
+                    </td>
+
+                    <td>
+                        <span class="time-badge">
+                            {{ r.start_time or "—" }}
+                        </span>
+                    </td>
+
+                    <td>
+                        <span class="time-badge">
+                            {{ r.end_time or "—" }}
+                        </span>
+                    </td>
+
+                </tr>
+
+            {% else %}
+
+                <tr>
+
+                    <td
+                        colspan="5"
+                        class="text-center text-muted py-5"
+                    >
+                        No routine assigned yet.
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}
+>>>>>>> 982c4bf (Finalize BYAPON management system and student auto login)
