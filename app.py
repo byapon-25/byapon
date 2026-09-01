@@ -1698,20 +1698,6 @@ def premium_home():
     return render_template("premium_home.html")
 
 
-@app.get("/premium/admin")
-@login_required
-@app.get("/premium/admin")
-def premium_admin():
-    con=db()
-    try:
-        students=con.execute("SELECT COUNT(*) AS n FROM students WHERE active=1").fetchone()["n"]
-        teachers=con.execute("SELECT COUNT(*) AS n FROM teachers WHERE active=1").fetchone()["n"]
-        exams=con.execute("SELECT COUNT(*) AS n FROM exams").fetchone()["n"]
-        fees=con.execute("SELECT COALESCE(SUM(paid_amount),0) AS n FROM fees").fetchone()["n"]
-        pending=con.execute("SELECT COALESCE(SUM(amount-paid_amount),0) AS n FROM fees").fetchone()["n"]
-    finally:
-        con.close()
-    return render_template("premium_admin.html",students=students,teachers=teachers,exams=exams,fees=fees,pending=pending)
 
 
 @app.get("/premium/admin")
