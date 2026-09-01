@@ -155,19 +155,31 @@ def login():
                         user=None
 
         elif role=="student":
+            # Student login: Admin-defined Student ID + Password
             user=con.execute(
-                "SELECT id,student_id AS username,password FROM students "
-                "WHERE student_id=? AND active=1",
+                "SELECT id, student_id AS username, password "
+                "FROM students "
+                "WHERE student_id=? AND active=1 "
+                "LIMIT 1",
                 (username,)
             ).fetchone()
 
             if user:
-                try:
-                    if not check_password_hash(user["password"],password):
-                        user=None
-                except Exception:
-                    if user["password"] != password:
-                        user=None
+                stored = user["password"] or ""
+                valid = False
+
+                # Support both hashed and legacy plain-text passwords.
+                if stored:
+                    try:
+                        valid = check_password_hash(stored, password)
+                    except Exception:
+                        valid = False
+
+                    if not valid:
+                        valid = (stored == password)
+
+                if not valid:
+                    user = None
 
         con.close()
 
@@ -216,7 +228,8 @@ def students():
                 request.form.get("class_name","").strip(),
                 request.form.get("batch","").strip(),
                 request.form.get("guardian","").strip(),
-                request.form["password"]
+                (request.form.get("password","").strip()
+                 or request.form["student_id"].strip())
             ))
             con.commit()
             flash("Student added successfully.","success")
@@ -284,7 +297,9 @@ def edit_student(sid):
                 request.form.get("class_name","").strip(),
                 request.form.get("batch","").strip(),
                 request.form.get("guardian","").strip(),
-                request.form["password"],
+                generate_password_hash(request.form["password"].strip())
+                    if request.form.get("password","").strip()
+                    else student["password"],
                 int(request.form.get("active",1)),
                 sid
             ))
@@ -323,7 +338,10 @@ def teachers():
                 request.form.get("subject","").strip(),
                 request.form.get("qualification","").strip(),
                 float(request.form.get("salary") or 0),
-                request.form["password"]
+                generate_password_hash(
+                    request.form.get("password","").strip()
+                    or request.form["student_id"].strip()
+                )
             ))
             con.commit()
             flash("Teacher added successfully.","success")
@@ -1586,7 +1604,8 @@ def delete_teacher_assignment(aid):
 
 
 if __name__=="__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host="127.0.0.1", port=5000, debug=True)
+
 # ================================
 # MISSING ADMIN ROUTES
 # ================================
